@@ -40,7 +40,8 @@ const ERCaseManagement = () => {
 
   const handleUpdate = async (e) => {
     e.preventDefault();
-    const { error } = await supabase.from('cases').update(selectedCase).eq('id', selectedCase.id);
+    const { id, created_at, ...updateData } = selectedCase;
+    const { error } = await supabase.from('cases').update(updateData).eq('id', selectedCase.id);
     if (!error) {
       setIsEditing(false);
       fetchCases();

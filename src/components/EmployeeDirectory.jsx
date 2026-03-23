@@ -1,14 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { Users, Filter, Eye, X, Mail, Phone, MapPin, Briefcase, UserRound, Activity, Edit2, Search, Trash2, Save, UserPlus, ShieldAlert, CheckCircle } from 'lucide-react';
+import { Users, Filter, Eye, X, Mail, Phone, MapPin, Briefcase, UserRound, Activity, Edit2, Search, Trash2, Save, UserPlus, ShieldAlert, CheckCircle, Upload, FileText } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+
+const MODULAR_DOCS_LIST = [
+  { key: 'pds', label: 'Personal Data Sheet (PDS)' },
+  { key: 'sss', label: 'SSS Number / Document' },
+  { key: 'bir', label: 'BIR (TIN / 2316 / Registration)' },
+  { key: 'tin', label: 'TIN ID / Record' },
+  { key: 'philhealth', label: 'PhilHealth ID / Record' },
+  { key: 'tor', label: 'TOR (Transcript of Records)' },
+  { key: 'diploma', label: 'Diploma' },
+  { key: 'work_history', label: 'Work History / Employment Certificates' }
+];
 
 const EmployeeDirectory = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [uploadingDoc, setUploadingDoc] = useState(null); // Track which doc is uploading
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Modal States
   const [selectedFileUrl, setSelectedFileUrl] = useState(null);
   const [selectedProfile, setSelectedProfile] = useState(null);
@@ -32,6 +44,13 @@ const EmployeeDirectory = () => {
       setEmployees(data);
     }
     setLoading(false);
+  };
+
+  // Open the Profile Modal & Seed Form Data
+  const openProfile = (emp) => {
+    setSelectedProfile(emp);
+    setEditForm(emp);
+    setIsEditingProfile(false);
   };
 
   // Lock body scroll when modals are open
@@ -65,8 +84,17 @@ const EmployeeDirectory = () => {
       case 'Project-Based / Contractual': return { bg: 'rgba(163, 113, 247, 0.15)', color: 'var(--accent-purple)' };
       case 'Suspended / On-Leave Status': return { bg: 'rgba(255, 123, 114, 0.15)', color: 'var(--accent-red)' };
       case 'Separated / Offboarded': return { bg: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-secondary)' };
-      case 'Probationary Status':
       default: return { bg: 'rgba(88, 166, 255, 0.15)', color: 'var(--accent-blue)' };
+    }
+  };
+
+  const getDocStatusStyle = (status) => {
+    switch (status) {
+      case 'Approved': return { color: 'var(--accent-green)', bg: 'rgba(63, 185, 80, 0.1)' };
+      case 'Rejected': return { color: 'var(--accent-red)', bg: 'rgba(255, 123, 114, 0.1)' };
+      case 'Pending Verification': return { color: 'var(--accent-blue)', bg: 'rgba(88, 166, 255, 0.1)' };
+      case 'Uploaded': return { color: '#fff', bg: 'rgba(255, 255, 255, 0.1)' };
+      default: return { color: 'var(--text-secondary)', bg: 'transparent' };
     }
   };
 
@@ -76,8 +104,14 @@ const EmployeeDirectory = () => {
     setSelectedProfile(updatedProfile);
     setIsEditingStatus(false);
     
-    await supabase.from('employees').update({ employment_status: newStatus }).eq('id', selectedProfile.id);
-    fetchEmployees();
+    const { error } = await supabase.from('employees').update({ employment_status: newStatus }).eq('id', selectedProfile.id);
+    
+    if (error) {
+      console.error("SUPABASE ERROR [Status Change]:", error);
+      alert(`Update failed: ${error.message}`);
+    } else {
+      fetchEmployees();
+    }
   };
 
   // 2. UPDATE: Save Full Edited Profile
@@ -85,9 +119,10 @@ const EmployeeDirectory = () => {
     e.preventDefault();
     setLoading(true);
 
+    const { id, created_at, ...updateData } = editForm;
     const { error } = await supabase
       .from('employees')
-      .update(editForm)
+      .update(updateData)
       .eq('id', selectedProfile.id);
 
     if (!error) {
@@ -124,44 +159,76 @@ const EmployeeDirectory = () => {
     'Corrective actions', 'Work history', 'Post-employment information', 'Hiring requirements'
   ];
 
-  const toggleChecklistItem = async (item) => {
-     let currentList = selectedProfile.file_201_checklist || [];
-     let updatedList;
-     
-     if (currentList.includes(item)) {
-        updatedList = currentList.filter(i => i !== item);
-     } else {
-        updatedList = [...currentList, item];
-     }
-     
-     const updatedProfile = { ...selectedProfile, file_201_checklist: updatedList };
-     setSelectedProfile(updatedProfile);
-     
-     await supabase.from('employees')
-        .update({ file_201_checklist: updatedList })
-        .eq('id', selectedProfile.id);
-     
-     fetchEmployees();
+  // Modular Document Logic
+  const handleDocUpload = async (docKey, file) => {
+    if (!file) return;
+    setUploadingDoc(docKey);
+    
+    // 1. Upload to Storage
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${selectedProfile.id}_${docKey}_${Date.now()}.${fileExt}`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('201_files')
+      .upload(fileName, file);
+
+    if (uploadError) {
+      alert("Upload failed: " + uploadError.message);
+      setUploadingDoc(null);
+      return;
+    }
+
+    const { data: { publicUrl } } = supabase.storage.from('201_files').getPublicUrl(uploadData.path);
+
+    // 2. Update Database Object
+    const currentDocs = selectedProfile.modular_docs || {};
+    const updatedDocs = {
+      ...currentDocs,
+      [docKey]: {
+        url: publicUrl,
+        name: file.name,
+        status: 'Pending Verification',
+        uploaded_at: new Date().toISOString(),
+        remarks: ''
+      }
+    };
+
+    const { error: dbError } = await supabase.from('employees')
+      .update({ modular_docs: updatedDocs })
+      .eq('id', selectedProfile.id);
+
+    if (dbError) {
+      console.error("SUPABASE ERROR [Doc Upload DB Update]:", dbError);
+      alert(`Failed to update compliance record: ${dbError.message}`);
+    } else {
+      setSelectedProfile({ ...selectedProfile, modular_docs: updatedDocs });
+      fetchEmployees();
+    }
+    setUploadingDoc(null);
   };
 
-  const setAllChecklistItems = async (isMarkAll) => {
-    const newList = isMarkAll ? fileRequirements : [];
-    const updatedProfile = { ...selectedProfile, file_201_checklist: newList };
-    setSelectedProfile(updatedProfile);
-    
-    await supabase.from('employees')
-       .update({ file_201_checklist: newList })
-       .eq('id', selectedProfile.id);
-    
-    fetchEmployees();
+  const handleDocVerify = async (docKey, status, remarks = '') => {
+    const currentDocs = selectedProfile.modular_docs || {};
+    const updatedDocs = {
+      ...currentDocs,
+      [docKey]: {
+        ...currentDocs[docKey],
+        status: status,
+        verified_at: new Date().toISOString(),
+        remarks: remarks
+      }
+    };
+
+    const { error } = await supabase.from('employees')
+      .update({ modular_docs: updatedDocs })
+      .eq('id', selectedProfile.id);
+
+    if (!error) {
+      setSelectedProfile({ ...selectedProfile, modular_docs: updatedDocs });
+      fetchEmployees();
+    }
   };
 
-  // Open the Profile Modal & Seed Form Data
-  const openProfile = (emp) => {
-    setSelectedProfile(emp);
-    setEditForm(emp);
-    setIsEditingProfile(false);
-  };
+
 
   // Derived Filtered List
   const filteredEmployees = employees.filter(emp => {
@@ -178,28 +245,58 @@ const EmployeeDirectory = () => {
   return (
     <>
       {/* 201 File Viewer Modal */}
+      {/* 201 File Viewer Modal */}
       {selectedFileUrl && (
         <div 
           onClick={() => setSelectedFileUrl(null)} 
           style={{ 
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
-            backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 10000, 
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' 
+            backgroundColor: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(10px)', zIndex: 10000, 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' 
           }}>
           <div 
             onClick={(e) => e.stopPropagation()} 
             className="glass-panel animate-fade-in"
-            style={{ width: '100%', maxWidth: '1200px', height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)' }}>
-              <h3 style={{ margin: 0 }}>201 Form Viewer</h3>
-              <button 
-                onClick={() => setSelectedFileUrl(null)} 
-                style={{ background: 'rgba(255, 255, 255, 0.1)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer' }}>
-                <X size={20} />
-              </button>
+            style={{ 
+              width: '100%', maxWidth: '1100px', height: '90vh', display: 'flex', flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', overflow: 'hidden'
+            }}>
+            <div style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', background: 'var(--bg-tertiary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <FileText size={20} color="var(--accent-blue)" />
+                <h3 style={{ margin: 0, fontSize: '1.1rem' }}>SGC 201 Document Vault</h3>
+              </div>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <a href={selectedFileUrl} target="_blank" rel="noreferrer" style={{ background: 'var(--accent-blue)', color: '#fff', padding: '8px 16px', borderRadius: '8px', fontSize: '0.85rem', textDecoration: 'none', fontWeight: 'bold' }}>Original Resource</a>
+                <button 
+                  onClick={() => setSelectedFileUrl(null)} 
+                  style={{ background: 'rgba(255, 255, 255, 0.1)', border: 'none', color: '#fff', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <X size={20} />
+                </button>
+              </div>
             </div>
-            <div style={{ flex: 1, backgroundColor: 'var(--bg-primary)', borderRadius: '8px', overflow: 'hidden' }}>
-               <iframe src={selectedFileUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="201 File Viewer"/>
+            <div style={{ flex: 1, backgroundColor: '#f0f2f5', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               {(() => {
+                 const url = String(selectedFileUrl);
+                 const cleanUrl = url.split('?')[0];
+                 const ext = cleanUrl.split('.').pop().toLowerCase();
+                 const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+                 const isDoc = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext);
+                 const isPdf = ext === 'pdf';
+
+                 if (isImage) {
+                   return <img src={selectedFileUrl} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }} />;
+                 }
+                 if (isPdf) {
+                    return <iframe src={selectedFileUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="PDF Viewer" />;
+                 }
+                 if (isDoc) {
+                    const viewerUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(selectedFileUrl)}`;
+                    return <iframe src={viewerUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="Doc Viewer"/>;
+                 }
+                 // Default to standard iframe if unknown but present
+                 return <iframe src={selectedFileUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="Generic Viewer"/>;
+               })()}
             </div>
           </div>
         </div>
@@ -226,34 +323,66 @@ const EmployeeDirectory = () => {
             <div style={{ height: '140px', background: 'var(--accent-gradient)', position: 'relative', flexShrink: 0, borderTopLeftRadius: '16px', borderTopRightRadius: '16px' }}>
               <div style={{ position: 'absolute', top: '16px', right: '64px' }}>
                 <button onClick={() => setShowChecklistDropdown(!showChecklistDropdown)} style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '6px 16px', borderRadius: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 'bold' }}>
-                  <ShieldAlert size={14} color={(selectedProfile.file_201_checklist?.length || 0) === 16 ? 'var(--accent-green)' : 'var(--accent-red)'}/>
-                  201 File Requirements
-                  <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem' }}>{(selectedProfile.file_201_checklist?.length || 0)}/16</span>
+                  <ShieldAlert size={14} color={MODULAR_DOCS_LIST.filter(d => (selectedProfile.modular_docs?.[d.key]?.status === 'Approved')).length === MODULAR_DOCS_LIST.length ? 'var(--accent-green)' : 'var(--accent-red)'}/>
+                  Vault Compliance Matrix
+                  <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem' }}>
+                    {MODULAR_DOCS_LIST.filter(d => selectedProfile.modular_docs?.[d.key]?.url).length}/{MODULAR_DOCS_LIST.length}
+                  </span>
                 </button>
 
                 {showChecklistDropdown && (
-                  <div onClick={e => e.stopPropagation()} className="glass-panel animate-fade-in" style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', width: '380px', maxHeight: '420px', overflowY: 'auto', zIndex: 99999, padding: '20px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', border: '1px solid var(--glass-border)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                       <h3 style={{ margin: 0, color: 'var(--accent-green)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem' }}>
-                          <ShieldAlert size={16} /> 201 File Checklist
+                  <div onClick={e => e.stopPropagation()} className="glass-panel animate-fade-in" style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', width: '450px', maxHeight: '550px', overflowY: 'auto', zIndex: 99999, padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', border: '1px solid var(--glass-border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                       <h3 style={{ margin: 0, color: '#fff', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem' }}>
+                          <CheckCircle size={18} color="var(--accent-green)" /> 201 Modular Repository
                        </h3>
-                       <div style={{ display: 'flex', gap: '6px' }}>
-                          <button onClick={(e) => { e.stopPropagation(); setAllChecklistItems(true); }} style={{ background: 'rgba(63, 185, 80, 0.1)', border: 'none', color: 'var(--accent-green)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}><CheckCircle size={10} /> All</button>
-                          <button onClick={(e) => { e.stopPropagation(); setAllChecklistItems(false); }} style={{ background: 'rgba(255, 123, 114, 0.1)', border: 'none', color: 'var(--accent-red)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}><X size={10} /> Clear</button>
-                       </div>
                     </div>
-                    <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', marginBottom: '20px', overflow: 'hidden' }}>
-                       <div style={{ width: `${((selectedProfile.file_201_checklist?.length || 0) / 16) * 100}%`, height: '100%', background: (selectedProfile.file_201_checklist?.length || 0) === 16 ? 'var(--accent-green)' : 'var(--accent-blue)', transition: 'width 0.4s ease' }} />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                       {fileRequirements.map((item, idx) => {
-                          const isCompliant = selectedProfile.file_201_checklist?.includes(item);
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                       {MODULAR_DOCS_LIST.map((doc, idx) => {
+                          const docData = selectedProfile.modular_docs?.[doc.key];
+                          const hasFile = !!docData?.url;
+                          const styles = getDocStatusStyle(docData?.status || 'Missing');
+                          
                           return (
-                             <div key={idx} onClick={(e) => { e.stopPropagation(); toggleChecklistItem(item); }} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px', background: isCompliant ? 'rgba(63, 185, 80, 0.05)' : 'rgba(255,255,255,0.02)', borderRadius: '8px', border: isCompliant ? '1px solid rgba(63, 185, 80, 0.2)' : '1px solid var(--glass-border)', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left' }}>
-                                <div style={{ width: '16px', height: '16px', flexShrink: 0, marginTop: '2px', borderRadius: '4px', border: `2px solid ${isCompliant ? 'var(--accent-green)' : 'var(--glass-border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isCompliant ? 'var(--accent-green)' : 'transparent' }}>
-                                   {isCompliant && <CheckCircle size={12} color="#fff" />}
+                             <div key={idx} style={{ 
+                               padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', 
+                               border: `1px solid ${hasFile ? 'var(--glass-border)' : 'rgba(255,123,114,0.1)'}`, 
+                               display: 'flex', flexDirection: 'column', gap: '12px'
+                             }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                      <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: hasFile ? '#fff' : 'var(--text-secondary)' }}>{doc.label}</span>
+                                      <span style={{ fontSize: '0.7rem', color: styles.color, fontWeight: 'bold', textTransform: 'uppercase' }}>{docData?.status || 'Missing'}</span>
+                                   </div>
+                                   <div style={{ display: 'flex', gap: '8px' }}>
+                                      {hasFile && (
+                                        <button onClick={() => setSelectedFileUrl(docData.url)} style={{ background: 'rgba(88, 166, 255, 0.1)', border: 'none', color: 'var(--accent-blue)', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}><Eye size={14} /></button>
+                                      )}
+                                      <label style={{ background: 'var(--accent-blue)', color: '#fff', padding: '6px 10px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                         <Upload size={12} /> {uploadingDoc === doc.key ? '...' : 'Upload'}
+                                         <input type="file" hidden onChange={(e) => handleDocUpload(doc.key, e.target.files[0])} />
+                                      </label>
+                                   </div>
                                 </div>
-                                <span style={{ fontSize: '0.8rem', color: isCompliant ? '#fff' : 'var(--text-secondary)', fontWeight: isCompliant ? 'bold' : 'normal', lineHeight: '1.4' }}>{item}</span>
+
+                                {hasFile && (
+                                  <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--glass-border)', paddingTop: '12px' }}>
+                                     <button onClick={() => handleDocVerify(doc.key, 'Approved')} style={{ flex: 1, background: 'rgba(63, 185, 80, 0.1)', border: '1px solid rgba(63, 185, 80, 0.2)', color: 'var(--accent-green)', padding: '6px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}>Approve</button>
+                                     <button onClick={() => { const r = prompt("Reason for rejection?"); if(r) handleDocVerify(doc.key, 'Rejected', r); }} style={{ flex: 1, background: 'rgba(255, 123, 114, 0.1)', border: '1px solid rgba(255, 123, 114, 0.2)', color: 'var(--accent-red)', padding: '6px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}>Reject</button>
+                                  </div>
+                                )}
+                                
+                                {docData?.remarks && (
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--accent-red)', background: 'rgba(255,123,114,0.05)', padding: '8px', borderRadius: '6px', fontStyle: 'italic' }}>
+                                    "{docData.remarks}"
+                                  </div>
+                                )}
+                                {docData?.uploaded_at && (
+                                  <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textAlign: 'right' }}>
+                                    Uploaded: {new Date(docData.uploaded_at).toLocaleDateString()}
+                                  </div>
+                                )}
                              </div>
                           );
                        })}
@@ -567,18 +696,25 @@ const EmployeeDirectory = () => {
                           {emp.name_english}
                        </div>
                        
-                       {/* Table-view Compliance Progress Bar */}
+                        {/* Table-view Compliance Progress Bar */}
                        <div style={{ width: '140px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div style={{ flex: 1, height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
-                             <div style={{ 
-                                width: `${((emp.file_201_checklist?.length || 0) / 16) * 100}%`, 
-                                height: '100%', 
-                                background: (emp.file_201_checklist?.length || 0) === 16 ? 'var(--accent-green)' : (emp.file_201_checklist?.length || 0) > 8 ? 'var(--accent-blue)' : 'var(--accent-red)',
-                                transition: 'width 0.4s ease' 
-                             }} />
+                             {(() => {
+                               const uploadedCount = MODULAR_DOCS_LIST.filter(d => emp.modular_docs?.[d.key]?.url).length;
+                               const approvedCount = MODULAR_DOCS_LIST.filter(d => emp.modular_docs?.[d.key]?.status === 'Approved').length;
+                               const pct = (uploadedCount / MODULAR_DOCS_LIST.length) * 100;
+                               return (
+                                 <div style={{ 
+                                    width: `${pct}%`, 
+                                    height: '100%', 
+                                    background: approvedCount === MODULAR_DOCS_LIST.length ? 'var(--accent-green)' : pct > 75 ? 'var(--accent-blue)' : 'var(--accent-red)',
+                                    transition: 'width 0.4s ease' 
+                                 }} />
+                               );
+                             })()}
                           </div>
                           <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', opacity: 0.8 }}>
-                             {Math.round(((emp.file_201_checklist?.length || 0) / 16) * 100)}%
+                             {Math.round((MODULAR_DOCS_LIST.filter(d => emp.modular_docs?.[d.key]?.url).length / MODULAR_DOCS_LIST.length) * 100)}%
                           </span>
                        </div>
                     </div>
@@ -604,23 +740,17 @@ const EmployeeDirectory = () => {
                     <div style={{ color: 'var(--text-secondary)' }}>{emp.mobile || 'N/A'}</div>
                   </td>
                   <td style={{ padding: '16px' }}>
-                    {emp.file_201_url ? (
-                      <button 
-                        onClick={() => setSelectedFileUrl(emp.file_201_url)}
-                        style={{ 
-                          display: 'flex', alignItems: 'center', gap: '6px', 
-                          background: 'rgba(88, 166, 255, 0.15)', border: '1px solid rgba(88, 166, 255, 0.3)', 
-                          color: 'var(--accent-blue)', padding: '6px 12px', borderRadius: '6px', 
-                          fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.2s'
-                        }}
-                        onMouseOver={(e) => { e.currentTarget.style.background = 'var(--accent-blue)'; e.currentTarget.style.color = '#fff'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(88, 166, 255, 0.15)'; e.currentTarget.style.color = 'var(--accent-blue)'; }}
-                      >
-                        <Eye size={16} /> Verify
-                      </button>
-                    ) : (
-                      <span style={{ color: 'var(--accent-red)', paddingLeft: '12px' }}>Awaiting Sync</span>
-                    )}
+                    <button 
+                      onClick={() => openProfile(emp)}
+                      style={{ 
+                        display: 'flex', alignItems: 'center', gap: '6px', 
+                        background: 'rgba(88, 166, 255, 0.15)', border: '1px solid rgba(88, 166, 255, 0.3)', 
+                        color: 'var(--accent-blue)', padding: '6px 12px', borderRadius: '6px', 
+                        fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.2s'
+                      }}
+                    >
+                      <Eye size={16} /> Documents
+                    </button>
                   </td>
                 </tr>
               ))

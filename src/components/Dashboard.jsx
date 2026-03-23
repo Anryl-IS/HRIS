@@ -105,8 +105,8 @@ const Dashboard = () => {
             <h3 style={{ fontSize: '1.2rem', marginBottom: '4px' }}>Strategic Compliance Telemetry</h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Correlation of Local Payout Volume vs SOP Incident Reported Feed</p>
           </div>
-          <div style={{ height: '350px', width: '100%', minHeight: '350px' }}>
-            <ResponsiveContainer width="99%" height="100%">
+          <div style={{ position: 'relative', width: '100%', height: '350px' }}>
+            <ResponsiveContainer width="100%" height="100%" debounce={1}>
               <AreaChart data={mockRiskData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorInc" x1="0" y1="0" x2="0" y2="1">

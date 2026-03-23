@@ -31,8 +31,16 @@ const OnboardingVault = () => {
   const fetchData = async () => {
     const { data } = await supabase.from('employees').select('*').order('created_at', { ascending: false });
     if (data) {
-      setPipeline(data.filter(e => (e.file_201_checklist?.length || 0) < 16));
-      setVerified(data.filter(e => (e.file_201_checklist?.length || 0) === 16));
+      setPipeline(data.filter(e => {
+        const docs = e.modular_docs || {};
+        const uploadedCount = Object.values(docs).filter(d => d.url).length;
+        return uploadedCount < 8;
+      }));
+      setVerified(data.filter(e => {
+        const docs = e.modular_docs || {};
+        const approvedCount = Object.values(docs).filter(d => d.status === 'Approved').length;
+        return approvedCount === 8;
+      }));
     }
   };
 
@@ -81,18 +89,16 @@ const OnboardingVault = () => {
       }
 
       const combinedFileUrls = fileUrls.length > 0 ? fileUrls.join(',') : null;
-      const initialChecklist = [];
-      if (formData.name_english) initialChecklist.push('Full name');
-      if (formData.dob) initialChecklist.push('Date of birth');
-      if (formData.residence_address) initialChecklist.push('Address');
-      if (formData.mobile || formData.email) initialChecklist.push('Contact information');
-      if (formData.sss) initialChecklist.push('SSS number');
-      if (formData.philhealth) initialChecklist.push('PhilHealth number');
-      if (formData.pagibig) initialChecklist.push('Pag-IBIG Home Development Mutual Fund (HDMF) number');
-      if (formData.tin) initialChecklist.push('Tax Identification number (TIN)');
-      if (formData.educational) initialChecklist.push('Education transcripts or diplomas');
-      if (formData.work_history) initialChecklist.push('Work history');
-      if (fileUrls.length > 0) initialChecklist.push('Hiring requirements');
+      const modularDocs = {
+        pds: { url: null, status: formData.name_english ? 'Approved' : 'Missing', remarks: 'Seeded from PDS' },
+        sss: { url: null, status: formData.sss ? 'Pending Verification' : 'Missing', remarks: '' },
+        bir: { url: null, status: formData.tin ? 'Pending Verification' : 'Missing', remarks: '' },
+        tin: { url: null, status: formData.tin ? 'Pending Verification' : 'Missing', remarks: '' },
+        philhealth: { url: null, status: formData.philhealth ? 'Pending Verification' : 'Missing', remarks: '' },
+        tor: { url: null, status: formData.educational ? 'Pending Verification' : 'Missing', remarks: '' },
+        diploma: { url: null, status: formData.educational ? 'Pending Verification' : 'Missing', remarks: '' },
+        work_history: { url: null, status: formData.work_history ? 'Pending Verification' : 'Missing', remarks: '' }
+      };
 
       await supabase.from('employees').insert([{
         name_english: formData.name_english,
@@ -113,8 +119,7 @@ const OnboardingVault = () => {
         sss: formData.sss,
         philhealth: formData.philhealth,
         pagibig: formData.pagibig,
-        file_201_url: combinedFileUrls,
-        file_201_checklist: initialChecklist
+        modular_docs: modularDocs
       }]);
 
       setShowModal(false);
@@ -403,7 +408,13 @@ const OnboardingVault = () => {
                 <li key={emp.id} onClick={() => navigate('/directory', { state: { openEmployeeId: emp.id } })} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--glass-border)', cursor: 'pointer' }}>
                   <span style={{ fontWeight: '500' }}>{emp.name_english}</span>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ color: 'var(--accent-red)', fontSize: '0.8rem', fontWeight: 'bold' }}>{(emp.file_201_checklist?.length || 0)}/16 Compliant</div>
+                    {(() => {
+                      const docs = emp.modular_docs || {};
+                      const uploadedCount = Object.values(docs).filter(d => d.url).length;
+                      return (
+                        <div style={{ color: 'var(--accent-red)', fontSize: '0.8rem', fontWeight: 'bold' }}>{uploadedCount}/8 Modular Docs</div>
+                      );
+                    })()}
                   </div>
                 </li>
               ))}
