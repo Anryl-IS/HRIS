@@ -3,6 +3,14 @@ import { UploadCloud, FileType, CheckCircle, Plus, X, ArrowRight, Shield, Book, 
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 
+const VaultInput = ({ label, type = "text", field, width = "100%", req = false, formData, setFormData }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width }}>
+    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{label} {req && <span style={{ color: 'var(--accent-red)' }}>*</span>}</label>
+    <input required={req} type={type} value={formData[field]} onChange={e => setFormData({ ...formData, [field]: e.target.value })}
+      style={{ padding: '10px', borderRadius: '6px', background: 'var(--bg-primary)', border: '1px solid var(--glass-border)', color: '#fff', outline: 'none' }} />
+  </div>
+);
+
 const OnboardingVault = () => {
   const navigate = useNavigate();
   const [pipeline, setPipeline] = useState([]);
@@ -133,14 +141,6 @@ const OnboardingVault = () => {
     }
   };
 
-  const Input = ({ label, type = "text", field, width = "100%", req = false }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width }}>
-      <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{label} {req && <span style={{ color: 'var(--accent-red)' }}>*</span>}</label>
-      <input required={req} type={type} value={formData[field]} onChange={e => setFormData({ ...formData, [field]: e.target.value })}
-        style={{ padding: '10px', borderRadius: '6px', background: 'var(--bg-primary)', border: '1px solid var(--glass-border)', color: '#fff', outline: 'none' }} />
-    </div>
-  );
-
   return (
     <>
       {/* 1. DATA VAULT MODAL (Outside transform) */}
@@ -196,10 +196,10 @@ const OnboardingVault = () => {
                   {activeTab === 1 && (
                     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                       <h4 style={{ color: 'var(--accent-blue)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>Personal Information (The Baseline)</h4>
-                      <Input label="Full Name (Last, First, MI)" field="name_english" req />
+                      <VaultInput label="Full Name (Last, First, MI)" field="name_english" req formData={formData} setFormData={setFormData} />
                       <div style={{ display: 'flex', gap: '16px' }}>
-                        <Input label="Date of Birth" type="date" field="dob" />
-                        <Input label="Place of Birth" field="pob" />
+                        <VaultInput label="Date of Birth" type="date" field="dob" formData={formData} setFormData={setFormData} />
+                        <VaultInput label="Place of Birth" field="pob" formData={formData} setFormData={setFormData} />
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Sex</label>
                           <select value={formData.sex} onChange={e => setFormData({ ...formData, sex: e.target.value })} style={{ padding: '10px', borderRadius: '6px', background: 'var(--bg-primary)', border: '1px solid var(--glass-border)', color: '#fff' }}>
@@ -208,18 +208,18 @@ const OnboardingVault = () => {
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: '16px' }}>
-                        <Input label="Height (m)" type="number" field="height" />
-                        <Input label="Weight (kg)" type="number" field="weight" />
-                        <Input label="Blood Type" field="blood_type" />
-                        <Input label="Civil Status" field="civil_status" />
+                        <VaultInput label="Height (m)" type="number" field="height" formData={formData} setFormData={setFormData} />
+                        <VaultInput label="Weight (kg)" type="number" field="weight" formData={formData} setFormData={setFormData} />
+                        <VaultInput label="Blood Type" field="blood_type" formData={formData} setFormData={setFormData} />
+                        <VaultInput label="Civil Status" field="civil_status" formData={formData} setFormData={setFormData} />
                       </div>
                       <h4 style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>Government IDs</h4>
                       <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                        <Input label="GSIS Number" field="gsis" width="calc(50% - 8px)" />
-                        <Input label="PAG-IBIG Number" field="pagibig" width="calc(50% - 8px)" />
-                        <Input label="PHILHEALTH Number" field="philhealth" width="calc(50% - 8px)" />
-                        <Input label="SSS Number" field="sss" width="calc(50% - 8px)" />
-                        <Input label="TIN Number" field="tin" width="calc(50% - 8px)" />
+                        <VaultInput label="GSIS Number" field="gsis" width="calc(50% - 8px)" formData={formData} setFormData={setFormData} />
+                        <VaultInput label="PAG-IBIG Number" field="pagibig" width="calc(50% - 8px)" formData={formData} setFormData={setFormData} />
+                        <VaultInput label="PHILHEALTH Number" field="philhealth" width="calc(50% - 8px)" formData={formData} setFormData={setFormData} />
+                        <VaultInput label="SSS Number" field="sss" width="calc(50% - 8px)" formData={formData} setFormData={setFormData} />
+                        <VaultInput label="TIN Number" field="tin" width="calc(50% - 8px)" formData={formData} setFormData={setFormData} />
                         <div style={{ width: 'calc(50% - 8px)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Citizenship Status</label>
                           <select value={formData.citizenship} onChange={e => setFormData({ ...formData, citizenship: e.target.value })} style={{ padding: '10px', borderRadius: '6px', background: 'var(--bg-primary)', border: '1px solid var(--glass-border)', color: '#fff' }}>
@@ -234,20 +234,20 @@ const OnboardingVault = () => {
                     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                       <h4 style={{ color: 'var(--accent-purple)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>Contact & Family Background</h4>
                       <div style={{ display: 'flex', gap: '16px' }}>
-                        <Input label="Residential Address" field="residence_address" width="70%" />
-                        <Input label="ZIP / Postal" field="residence_postal" width="30%" />
+                        <VaultInput label="Residential Address" field="residence_address" width="70%" formData={formData} setFormData={setFormData} />
+                        <VaultInput label="ZIP / Postal" field="residence_postal" width="30%" formData={formData} setFormData={setFormData} />
                       </div>
                       <div style={{ display: 'flex', gap: '16px' }}>
-                        <Input label="Permanent/Present Address" field="present_address" width="70%" />
-                        <Input label="ZIP / Postal" field="present_postal" width="30%" />
+                        <VaultInput label="Permanent/Present Address" field="present_address" width="70%" formData={formData} setFormData={setFormData} />
+                        <VaultInput label="ZIP / Postal" field="present_postal" width="30%" formData={formData} setFormData={setFormData} />
                       </div>
                       <div style={{ display: 'flex', gap: '16px' }}>
-                        <Input label="Email Address" type="email" field="email" req />
-                        <Input label="Mobile / Telephone" field="mobile" />
+                        <VaultInput label="Email Address" type="email" field="email" req formData={formData} setFormData={setFormData} />
+                        <VaultInput label="Mobile / Telephone" field="mobile" formData={formData} setFormData={setFormData} />
                       </div>
                       <h4 style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>Family Matrix</h4>
-                      <Input label="Spouse's Info (Name, Occupation, Employer)" field="spouse_name" />
-                      <Input label="Parents' Information (Inc. Mother's Maiden Name)" field="parents_names" />
+                      <VaultInput label="Spouse's Info (Name, Occupation, Employer)" field="spouse_name" formData={formData} setFormData={setFormData} />
+                      <VaultInput label="Parents' Information (Inc. Mother's Maiden Name)" field="parents_names" formData={formData} setFormData={setFormData} />
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Children (Names & DOBs for Benefits)</label>
                         <textarea value={formData.children_info} onChange={e => setFormData({ ...formData, children_info: e.target.value })} rows={3} style={{ padding: '10px', borderRadius: '6px', background: 'var(--bg-primary)', border: '1px solid var(--glass-border)', color: '#fff', outline: 'none' }}></textarea>
@@ -259,18 +259,18 @@ const OnboardingVault = () => {
                     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                       <h4 style={{ color: 'var(--accent-green)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>Educational Background & CSC Filters</h4>
                       <div style={{ display: 'flex', gap: '16px' }}>
-                        <Input label="Educational Level (College, Graduate, etc.)" field="educational" width="50%" />
-                        <Input label="Highest Level / Units Earned" field="highest_level" width="50%" />
+                        <VaultInput label="Educational Level (College, Graduate, etc.)" field="educational" width="50%" formData={formData} setFormData={setFormData} />
+                        <VaultInput label="Highest Level / Units Earned" field="highest_level" width="50%" formData={formData} setFormData={setFormData} />
                       </div>
                       <div style={{ display: 'flex', gap: '16px' }}>
-                        <Input label="Name of School / Institution" field="school_name" width="50%" />
-                        <Input label="Degree / Major Subject" field="major_subject" width="50%" />
+                        <VaultInput label="Name of School / Institution" field="school_name" width="50%" formData={formData} setFormData={setFormData} />
+                        <VaultInput label="Degree / Major Subject" field="major_subject" width="50%" formData={formData} setFormData={setFormData} />
                       </div>
-                      <Input label="Academic Honors Received & Year Graduated" field="honors" />
+                      <VaultInput label="Academic Honors Received & Year Graduated" field="honors" formData={formData} setFormData={setFormData} />
                       <h4 style={{ color: 'var(--text-secondary)', marginTop: '16px' }}>Civil Service & Licenses (SOP Sync)</h4>
                       <div style={{ display: 'flex', gap: '16px' }}>
-                        <Input label="License Type (Board/Bar/CSC Level)" field="csc_license" width="70%" />
-                        <Input label="Validity Date" type="date" field="csc_date" width="30%" />
+                        <VaultInput label="License Type (Board/Bar/CSC Level)" field="csc_license" width="70%" formData={formData} setFormData={setFormData} />
+                        <VaultInput label="Validity Date" type="date" field="csc_date" width="30%" formData={formData} setFormData={setFormData} />
                       </div>
                     </div>
                   )}
@@ -309,13 +309,13 @@ const OnboardingVault = () => {
                   {activeTab === 6 && (
                     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                       <h4 style={{ color: 'var(--accent-red)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>Other Information & Legal Disclosures</h4>
-                      <Input label="Special Skills & Hobbies (Culture Build)" field="skills" />
-                      <Input label="Non-Academic Distinctions / Awards" field="awards" />
-                      <Input label="Memberships in Organizations" field="memberships" />
+                      <VaultInput label="Special Skills & Hobbies (Culture Build)" field="skills" formData={formData} setFormData={setFormData} />
+                      <VaultInput label="Non-Academic Distinctions / Awards" field="awards" formData={formData} setFormData={setFormData} />
+                      <VaultInput label="Memberships in Organizations" field="memberships" formData={formData} setFormData={setFormData} />
                       <h4 style={{ color: 'var(--text-secondary)', marginTop: '16px' }}>The "34 to 40" Questions</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Legal Disclosures (Criminal records, admin cases, hiring authority nepotism checks)</label>
-                        <textarea value={formData.legal_34_40} onChange={e => setFormData({ ...formData, legal_34_40: e.target.value })} rows={4} style={{ padding: '10px', borderRadius: '6px', background: 'rgba(255, 123, 114, 0.1)', border: '1px solid var(--accent-red)', color: '#fff', outline: 'none' }}></textarea>
+                        <textarea value={formData.legal_34_40} onChange={e => setFormData({ ...formData, legal_34_40: e.target.value })} rows={4} style={{ padding: '10px', background: 'rgba(255, 123, 114, 0.1)', border: '1px solid var(--accent-red)', color: '#fff', outline: 'none' }}></textarea>
                       </div>
                     </div>
                   )}
