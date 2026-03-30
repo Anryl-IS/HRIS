@@ -99,7 +99,6 @@ const EmployeeRow = ({ employee, openProfile }) => (
       cursor: 'pointer'
     }}
   >
-    {/* Left Section */}
     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
       <div style={{
         width: '42px', height: '42px', borderRadius: '50%',
@@ -118,7 +117,6 @@ const EmployeeRow = ({ employee, openProfile }) => (
       </div>
     </div>
 
-    {/* Middle Section */}
     <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
       <div style={{ minWidth: '150px' }}>
         <div style={{ fontSize: '0.85rem', color: '#fff', fontWeight: '500' }}>{employee.position || 'Staff'}</div>
@@ -134,7 +132,6 @@ const EmployeeRow = ({ employee, openProfile }) => (
       </div>
     </div>
 
-    {/* Right Section */}
     <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
       <div style={{
         padding: '6px 14px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: '900',
@@ -271,7 +268,7 @@ const StaffRoster = () => {
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     const { id, created_at, ...updateData } = editForm;
-    const { error } = await supabase.from('employees').update(updateData).eq('id', selectedProfile.id);
+    const { error } = await supabase.from('employees').update(updateData).eq('id', id);
     if (!error) {
       setSelectedProfile(editForm);
       setIsEditingProfile(false);
@@ -325,9 +322,9 @@ const StaffRoster = () => {
 
   const filtered = employees.filter(emp => {
     const matchesTab = activeTab === 'TELLERS' ? isTeller(emp) : !isTeller(emp);
-    const matchesSearch = emp.name_english?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.position?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.department?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = emp.name_english?.toLowerCase().includes(searchQuery?.toLowerCase() || '') ||
+      emp.position?.toLowerCase().includes(searchQuery?.toLowerCase() || '') ||
+      emp.department?.toLowerCase().includes(searchQuery?.toLowerCase() || '');
     return matchesTab && matchesSearch;
   });
 
@@ -340,7 +337,6 @@ const StaffRoster = () => {
 
   return (
     <div className="animate-fade-in" style={{ padding: '0 0 40px 0' }}>
-
 
       <RosterControls
         viewMode={viewMode}
@@ -388,7 +384,6 @@ const StaffRoster = () => {
         </button>
       </div>
 
-      {/* Department Groupings */}
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', padding: '100px 0' }}>
           <div className="spinner-glow" style={{ width: '40px', height: '40px', border: '3px solid rgba(88, 166, 255, 0.1)', borderTopColor: 'var(--accent-blue)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
@@ -456,69 +451,7 @@ const StaffRoster = () => {
         ))
       )}
 
-      {/* Empty State */}
-      {!loading && Object.keys(grouped).length === 0 && (
-        <div style={{ textAlign: 'center', padding: '100px 0', opacity: 0.5 }}>
-          <Users size={48} style={{ marginBottom: '16px' }} />
-          <h3>No records match your current filter criteria.</h3>
-        </div>
-      )}
-
-      {/* --- ADDED MODALS FROM DIRECTORY --- */}
-
-      {/* 201 File Viewer Modal */}
-      {selectedFileUrl && (
-        <div
-          onClick={() => setSelectedFileUrl(null)}
-          style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(10px)', zIndex: 10000,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px'
-          }}>
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="glass-panel animate-fade-in"
-            style={{
-              width: '100%', maxWidth: '1100px', height: '90vh', display: 'flex', flexDirection: 'column',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', overflow: 'hidden'
-            }}>
-            <div style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', background: 'var(--bg-tertiary)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <FileText size={20} color="var(--accent-blue)" />
-                <h3 style={{ margin: 0, fontSize: '1.1rem' }}>SGC 201 Document Vault</h3>
-              </div>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                <a href={selectedFileUrl} target="_blank" rel="noreferrer" style={{ background: 'var(--accent-blue)', color: '#fff', padding: '8px 16px', borderRadius: '8px', fontSize: '0.85rem', textDecoration: 'none', fontWeight: 'bold' }}>Original Resource</a>
-                <button
-                  onClick={() => setSelectedFileUrl(null)}
-                  style={{ background: 'rgba(255, 255, 255, 0.1)', border: 'none', color: '#fff', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                  <X size={20} />
-                </button>
-              </div>
-            </div>
-            <div style={{ flex: 1, backgroundColor: '#f0f2f5', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {(() => {
-                const url = String(selectedFileUrl);
-                const cleanUrl = url.split('?')[0];
-                const ext = cleanUrl.split('.').pop().toLowerCase();
-                const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
-                const isPdf = ext === 'pdf';
-
-                if (isImage) {
-                  return <img src={selectedFileUrl} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }} />;
-                }
-                if (isPdf) {
-                  return <iframe src={selectedFileUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="PDF Viewer" />;
-                }
-                // Default to standard iframe if unknown but present
-                return <iframe src={selectedFileUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="Generic Viewer" />;
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Employee Profile Preview / Edit CRUD Modal */}
+      {/* Profile Viewer / Edit CRUD Modal */}
       {selectedProfile && (
         <div
           onClick={() => { setSelectedProfile(null); setIsEditingStatus(false); setIsEditingProfile(false); }}
@@ -536,64 +469,36 @@ const StaffRoster = () => {
               overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: 0,
               position: 'relative', boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
             }}>
+
             <div style={{ height: '140px', background: 'var(--accent-gradient)', position: 'relative', flexShrink: 0, borderTopLeftRadius: '16px', borderTopRightRadius: '16px' }}>
               <div style={{ position: 'absolute', top: '16px', right: '64px' }}>
-                <button onClick={() => setShowChecklistDropdown(!showChecklistDropdown)} style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '6px 16px', borderRadius: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 'bold' }}>
-                  <ShieldAlert size={14} color={MODULAR_DOCS_LIST.filter(d => (selectedProfile.modular_docs?.[d.key]?.status === 'Approved')).length === MODULAR_DOCS_LIST.length ? 'var(--accent-green)' : 'var(--accent-red)'} />
-                  Vault Compliance Matrix
-                  <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem' }}>
-                    {MODULAR_DOCS_LIST.filter(d => selectedProfile.modular_docs?.[d.key]?.url).length}/{MODULAR_DOCS_LIST.length}
-                  </span>
-                </button>
+                <div style={{ position: 'relative' }}>
+                  <button onClick={() => setShowChecklistDropdown(!showChecklistDropdown)} style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '6px 16px', borderRadius: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                    <ShieldAlert size={14} color={MODULAR_DOCS_LIST.filter(d => (selectedProfile.modular_docs?.[d.key]?.status === 'Approved')).length === MODULAR_DOCS_LIST.length ? 'var(--accent-green)' : 'var(--accent-red)'} />
+                    Vault Compliance Matrix
+                    <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem' }}>
+                      {MODULAR_DOCS_LIST.filter(d => selectedProfile.modular_docs?.[d.key]?.url).length}/{MODULAR_DOCS_LIST.length}
+                    </span>
+                  </button>
 
-                {showChecklistDropdown && (
-                  <div onClick={e => e.stopPropagation()} className="glass-panel animate-fade-in" style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', width: '450px', maxHeight: '550px', overflowY: 'auto', zIndex: 99999, padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', border: '1px solid var(--glass-border)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                      <h3 style={{ margin: 0, color: '#fff', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem' }}>
-                        <CheckCircle size={18} color="var(--accent-green)" /> 201 Modular Repository
-                      </h3>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {MODULAR_DOCS_LIST.map((doc, idx) => {
-                        const docData = selectedProfile.modular_docs?.[doc.key];
-                        const hasFile = !!docData?.url;
-                        const styles = getDocStatusStyle(docData?.status || 'Missing');
-
-                        return (
-                          <div key={idx} style={{
-                            padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px',
-                            border: `1px solid ${hasFile ? 'var(--glass-border)' : 'rgba(255,123,114,0.1)'}`,
-                            display: 'flex', flexDirection: 'column', gap: '12px'
-                          }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: hasFile ? '#fff' : 'var(--text-secondary)' }}>{doc.label}</span>
-                                <span style={{ fontSize: '0.7rem', color: styles.color, fontWeight: 'bold', textTransform: 'uppercase' }}>{docData?.status || 'Missing'}</span>
-                              </div>
-                              <div style={{ display: 'flex', gap: '8px' }}>
-                                {hasFile && (
-                                  <button onClick={() => setSelectedFileUrl(docData.url)} style={{ background: 'rgba(88, 166, 255, 0.1)', border: 'none', color: 'var(--accent-blue)', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}><Eye size={14} /></button>
-                                )}
-                                <label style={{ background: 'var(--accent-blue)', color: '#fff', padding: '6px 10px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                  <Upload size={12} /> {uploadingDoc === doc.key ? '...' : 'Upload'}
-                                  <input type="file" hidden onChange={(e) => handleDocUpload(doc.key, e.target.files[0])} />
-                                </label>
-                              </div>
+                  {showChecklistDropdown && (
+                    <div onClick={e => e.stopPropagation()} className="glass-panel animate-fade-in" style={{ position: 'absolute', top: '100%', right: 0, marginTop: '12px', width: '320px', zIndex: 99999, padding: '20px', border: '1px solid var(--glass-border)', boxShadow: '0 15px 30px rgba(0,0,0,0.4)' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '16px' }}>Verification Status</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {MODULAR_DOCS_LIST.map((doc, idx) => {
+                          const status = selectedProfile.modular_docs?.[doc.key]?.status || 'Missing';
+                          const styles = getDocStatusStyle(status);
+                          return (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
+                              <span style={{ color: 'rgba(255,255,255,0.7)' }}>{doc.label.split('(')[0]}</span>
+                              <span style={{ color: styles.color, fontWeight: 'bold', fontSize: '0.7rem' }}>{status}</span>
                             </div>
-
-                            {hasFile && (
-                              <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--glass-border)', paddingTop: '12px' }}>
-                                <button onClick={() => handleDocVerify(doc.key, 'Approved')} style={{ flex: 1, background: 'rgba(63, 185, 80, 0.1)', border: '1px solid rgba(63, 185, 80, 0.2)', color: 'var(--accent-green)', padding: '6px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}>Approve</button>
-                                <button onClick={() => { const r = prompt("Reason for rejection?"); if (r) handleDocVerify(doc.key, 'Rejected', r); }} style={{ flex: 1, background: 'rgba(255, 123, 114, 0.1)', border: '1px solid rgba(255, 123, 114, 0.2)', color: 'var(--accent-red)', padding: '6px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}>Reject</button>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               <button onClick={() => { setSelectedProfile(null); setIsEditingStatus(false); setIsEditingProfile(false); setShowChecklistDropdown(false); }} style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(0,0,0,0.3)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -663,76 +568,347 @@ const StaffRoster = () => {
               </div>
 
               {isEditingProfile ? (
-                <form onSubmit={handleSaveProfile} style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div style={{ display: 'flex', gap: '16px' }}>
-                    <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Full Legal Name</label>
-                      <input required value={editForm.name_english || ''} onChange={(e) => setEditForm({ ...editForm, name_english: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                <form onSubmit={handleSaveProfile} style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                  {/* Personal Info Section */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <h4 style={{ color: 'var(--accent-blue)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', margin: 0 }}>Basic Demographics</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Full Legal Name</label>
+                        <input required value={editForm.name_english || ''} onChange={(e) => setEditForm({ ...editForm, name_english: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Email Allocation</label>
+                        <input type="email" value={editForm.email || ''} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Mobile Dispatch</label>
+                        <input value={editForm.mobile || ''} onChange={(e) => setEditForm({ ...editForm, mobile: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Photograph ID URL</label>
+                        <input value={editForm.photo_url || ''} onChange={(e) => setEditForm({ ...editForm, photo_url: e.target.value })} placeholder="https://..." style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
                     </div>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Photograph ID URL</label>
-                      <input value={editForm.photo_url || ''} onChange={(e) => setEditForm({ ...editForm, photo_url: e.target.value })} placeholder="https://..." style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Date of Birth</label>
+                        <input type="date" value={editForm.dob || ''} onChange={(e) => setEditForm({ ...editForm, dob: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Place of Birth</label>
+                        <input value={editForm.pob || ''} onChange={(e) => setEditForm({ ...editForm, pob: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Sex</label>
+                        <select value={editForm.sex || ''} onChange={(e) => setEditForm({ ...editForm, sex: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }}>
+                          <option value="">Select</option><option>Male</option><option>Female</option>
+                        </select>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Civil Status</label>
+                        <input value={editForm.civil_status || ''} onChange={(e) => setEditForm({ ...editForm, civil_status: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Blood Type</label>
+                        <input value={editForm.blood_type || ''} onChange={(e) => setEditForm({ ...editForm, blood_type: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Citizenship</label>
+                        <input value={editForm.citizenship || ''} onChange={(e) => setEditForm({ ...editForm, citizenship: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Height (m)</label>
+                        <input value={editForm.height || ''} onChange={(e) => setEditForm({ ...editForm, height: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Weight (kg)</label>
+                        <input value={editForm.weight || ''} onChange={(e) => setEditForm({ ...editForm, weight: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '16px' }}>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Department</label>
-                      <input value={editForm.department || ''} onChange={(e) => setEditForm({ ...editForm, department: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                  {/* Address Section */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <h4 style={{ color: 'var(--accent-green)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', margin: 0 }}>Residential Data</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 150px', gap: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Permanent Residence</label>
+                        <input value={editForm.residence_address || ''} onChange={(e) => setEditForm({ ...editForm, residence_address: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Postal Code</label>
+                        <input value={editForm.residence_postal || ''} onChange={(e) => setEditForm({ ...editForm, residence_postal: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
                     </div>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Position Wrapper</label>
-                      <input value={editForm.position || ''} onChange={(e) => setEditForm({ ...editForm, position: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 150px', gap: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Present Displacement Address</label>
+                        <input value={editForm.present_address || ''} onChange={(e) => setEditForm({ ...editForm, present_address: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Postal Code</label>
+                        <input value={editForm.present_postal || ''} onChange={(e) => setEditForm({ ...editForm, present_postal: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '16px' }}>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Email Allocation</label>
-                      <input type="email" value={editForm.email || ''} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                  {/* Family Data */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <h4 style={{ color: 'var(--accent-red)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', margin: 0 }}>Family Matrix</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Spousal Entry</label>
+                        <input value={editForm.spouse_name || ''} onChange={(e) => setEditForm({ ...editForm, spouse_name: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Parents (Father/Mother Legal Names)</label>
+                        <input value={editForm.parents_names || ''} onChange={(e) => setEditForm({ ...editForm, parents_names: e.target.value })} placeholder="Father's Name & Mother's Name" style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
                     </div>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Mobile Dispatch</label>
-                      <input value={editForm.mobile || ''} onChange={(e) => setEditForm({ ...editForm, mobile: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Children Allocation (Names & DOBs)</label>
+                      <textarea value={editForm.children_info || ''} onChange={(e) => setEditForm({ ...editForm, children_info: e.target.value })} rows="3" style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none', resize: 'vertical' }} />
                     </div>
                   </div>
 
-                  <button type="submit" disabled={loading} style={{ background: 'var(--accent-green)', color: '#fff', padding: '12px', border: 'none', borderRadius: '8px', fontWeight: 'bold', marginTop: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+                  {/* Org Placement Section */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <h4 style={{ color: 'var(--accent-purple)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', margin: 0 }}>Organizational Placement</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Department Allocation</label>
+                        <input value={editForm.department || ''} onChange={(e) => setEditForm({ ...editForm, department: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Position Wrapper</label>
+                        <input value={editForm.position || ''} onChange={(e) => setEditForm({ ...editForm, position: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Government IDs */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <h4 style={{ color: 'var(--accent-blue)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', margin: 0 }}>Government Identifier Matrix</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>SSS Number</label>
+                        <input value={editForm.sss || ''} onChange={(e) => setEditForm({ ...editForm, sss: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>PHILHEALTH</label>
+                        <input value={editForm.philhealth || ''} onChange={(e) => setEditForm({ ...editForm, philhealth: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>PAG-IBIG</label>
+                        <input value={editForm.pagibig || ''} onChange={(e) => setEditForm({ ...editForm, pagibig: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>TIN Number</label>
+                        <input value={editForm.tin || ''} onChange={(e) => setEditForm({ ...editForm, tin: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>GSIS Allocation</label>
+                        <input value={editForm.gsis || ''} onChange={(e) => setEditForm({ ...editForm, gsis: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Education & Bio Section */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <h4 style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', margin: 0 }}>Education & Skill Repository</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Historical Education Background</label>
+                        <input value={editForm.educational || ''} onChange={(e) => setEditForm({ ...editForm, educational: e.target.value })} placeholder="Primary / Secondary" style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Highest Level Entry</label>
+                        <input value={editForm.highest_level || ''} onChange={(e) => setEditForm({ ...editForm, highest_level: e.target.value })} placeholder="e.g. Bachelor of Science" style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>School Name / Institution</label>
+                        <input value={editForm.school_name || ''} onChange={(e) => setEditForm({ ...editForm, school_name: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Major / Project Subject</label>
+                        <input value={editForm.major_subject || ''} onChange={(e) => setEditForm({ ...editForm, major_subject: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Specified Skills</label>
+                        <input value={editForm.skills || ''} onChange={(e) => setEditForm({ ...editForm, skills: e.target.value })} placeholder="e.g. Accounting, IT, Operations" style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Work History & Legal */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <h4 style={{ color: 'var(--accent-purple)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', margin: 0 }}>Work History & Disclosures</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Professional Experience History</label>
+                      <textarea value={editForm.work_history || ''} onChange={(e) => setEditForm({ ...editForm, work_history: e.target.value })} rows="4" style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none', resize: 'vertical' }} />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>CSC License / Eligibility</label>
+                        <input value={editForm.csc_license || ''} onChange={(e) => setEditForm({ ...editForm, csc_license: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>CSC Validity / Date</label>
+                        <input type="date" value={editForm.csc_date || ''} onChange={(e) => setEditForm({ ...editForm, csc_date: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none' }} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Legal Disclosures (Q34-40 Response)</label>
+                      <textarea value={editForm.legal_34_40 || ''} onChange={(e) => setEditForm({ ...editForm, legal_34_40: e.target.value })} placeholder="Disclosures regarding legal history..." rows="2" style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'var(--bg-primary)', color: '#fff', outline: 'none', resize: 'vertical' }} />
+                    </div>
+                  </div>
+
+                  <button type="submit" disabled={loading} style={{ background: 'var(--accent-green)', color: '#fff', padding: '14px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(63, 185, 80, 0.3)' }}>
                     <Save size={18} /> {loading ? 'Committing...' : 'Commit Database Changes'}
                   </button>
                 </form>
               ) : (
-                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
                   <div>
-                    <h2 style={{ fontSize: '1.8rem', color: 'var(--text-primary)', marginBottom: '4px' }}>{selectedProfile.name_english}</h2>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-blue)', fontWeight: 'bold' }}>
-                      <Briefcase size={16} /> {selectedProfile.position || 'No Position mapped'} &bull; {selectedProfile.department || 'Corporate Tier'}
+                    <h2 style={{ fontSize: '2.2rem', color: 'var(--text-primary)', marginBottom: '4px' }}>{selectedProfile.name_english}</h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-blue)', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                      <Briefcase size={20} /> {selectedProfile.position || 'No Position mapped'} &bull; {selectedProfile.department || 'Corporate Tier'}
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'var(--bg-tertiary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Mail size={16} color="var(--accent-purple)" /></div>
-                      <div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Email Allocation</div>
-                        <div style={{ fontWeight: '500' }}>{selectedProfile.email || 'N/A'}</div>
+                  {/* View Mode Grid Sections */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+
+                    {/* Demographics & Personal */}
+                    <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(255,255,255,0.02)' }}>
+                      <h5 style={{ margin: 0, color: 'var(--accent-blue)', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '1px', fontWeight: 'bold' }}>Demographic Analysis</h5>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.85rem' }}>
+                        <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>DATE OF BIRTH</div>{selectedProfile.dob || 'N/A'}</div>
+                        <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>PLACE OF BIRTH</div>{selectedProfile.pob || 'N/A'}</div>
+                        <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>SEX</div>{selectedProfile.sex || 'N/A'}</div>
+                        <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>CIVIL STATUS</div>{selectedProfile.civil_status || 'N/A'}</div>
+                        <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>CITIZENSHIP</div>{selectedProfile.citizenship || 'Filipino'}</div>
+                        <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>BLOOD TYPE</div><span style={{ color: 'var(--accent-red)', fontWeight: 'bold' }}>{selectedProfile.blood_type || 'N/A'}</span></div>
+                        <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>HEIGHT</div>{selectedProfile.height || 'N/A'}m</div>
+                        <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>WEIGHT</div>{selectedProfile.weight || 'N/A'}kg</div>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Phone size={16} color="var(--accent-green)" /></div>
-                      <div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Mobile Dispatch</div>
-                        <div style={{ fontWeight: '500' }}>{selectedProfile.mobile || 'N/A'}</div>
+                    {/* Contact & Address */}
+                    <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(255,255,255,0.02)' }}>
+                      <h5 style={{ margin: 0, color: 'var(--accent-green)', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '1px', fontWeight: 'bold' }}>Contact & Residence</h5>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><Mail size={14} color="var(--accent-purple)" /> {selectedProfile.email || 'N/A'}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><Phone size={14} color="var(--accent-green)" /> {selectedProfile.mobile || 'N/A'}</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>PERMANENT ADDRESS</div>
+                          <div style={{ display: 'flex', gap: '6px' }}><MapPin size={12} style={{ marginTop: '2px' }} /> {selectedProfile.residence_address || 'N/A'} ({selectedProfile.residence_postal || '---'})</div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>PRESENT DISPLACEMENT</div>
+                          <div style={{ display: 'flex', gap: '6px' }}><MapPin size={12} style={{ marginTop: '2px' }} /> {selectedProfile.present_address || 'SAME AS PERMANENT'} ({selectedProfile.present_postal || '---'})</div>
+                        </div>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', gridColumn: 'span 2' }}>
-                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><MapPin size={16} color="var(--accent-red)" /></div>
-                      <div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Registered Residence</div>
-                        <div style={{ fontWeight: '500' }}>{selectedProfile.residence_address || 'Address missing in vault.'}</div>
+                    {/* Government Identifier Trace */}
+                    <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(255,255,255,0.02)' }}>
+                      <h5 style={{ margin: 0, color: 'var(--accent-red)', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '1px', fontWeight: 'bold' }}>Goverment Trace</h5>
+                      <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '12px', fontSize: '0.85rem' }}>
+                        <div style={{ color: 'var(--text-secondary)' }}>SSS NUMBER</div><code style={{ color: 'var(--accent-blue)' }}>{selectedProfile.sss || 'MISSING'}</code>
+                        <div style={{ color: 'var(--text-secondary)' }}>PHILHEALTH</div><code style={{ color: 'var(--accent-blue)' }}>{selectedProfile.philhealth || 'MISSING'}</code>
+                        <div style={{ color: 'var(--text-secondary)' }}>PAG-IBIG</div><code style={{ color: 'var(--accent-blue)' }}>{selectedProfile.pagibig || 'MISSING'}</code>
+                        <div style={{ color: 'var(--text-secondary)' }}>TIN NUMBER</div><code style={{ color: 'var(--accent-blue)' }}>{selectedProfile.tin || 'MISSING'}</code>
+                        <div style={{ color: 'var(--text-secondary)' }}>GSIS PLATE</div><code style={{ color: 'var(--accent-blue)' }}>{selectedProfile.gsis || 'MISSING'}</code>
                       </div>
+                    </div>
+
+                    {/* Family & Social Matrix */}
+                    <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(255,255,255,0.02)' }}>
+                      <h5 style={{ margin: 0, color: 'var(--accent-purple)', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '1px', fontWeight: 'bold' }}>Family Matrix</h5>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem' }}>
+                        <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>SPOUSE / PARTNER</div>{selectedProfile.spouse_name || 'NONE RECORDED'}</div>
+                        <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>PARENTS ORIGIN</div>{selectedProfile.parents_names || 'N/A'}</div>
+                        <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>CHILDREN ALLOCATION</div><div style={{ whiteSpace: 'pre-wrap', color: 'rgba(255,255,255,0.7)' }}>{selectedProfile.children_info || 'NO DATA'}</div></div>
+                      </div>
+                    </div>
+
+                    {/* Education & Skill Matrix */}
+                    <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(255,255,255,0.02)' }}>
+                      <h5 style={{ margin: 0, color: 'var(--text-primary)', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '1px', fontWeight: 'bold' }}>Education Hub</h5>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem' }}>
+                        <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>INSTITUTION</div>{selectedProfile.school_name || 'N/A'}</div>
+                        <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>ATTAINMENT</div>{selectedProfile.educational || 'N/A'} - {selectedProfile.highest_level || ''}</div>
+                        <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>MAJOR / SPECIALIZATION</div>{selectedProfile.major_subject || 'N/A'}</div>
+                        <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>RELEVANT SKILLS</div><div style={{ color: 'var(--accent-green)' }}>{selectedProfile.skills || 'GENERAL STAFF'}</div></div>
+                      </div>
+                    </div>
+
+                    {/* Experience & Disclosure */}
+                    <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(255,255,255,0.02)' }}>
+                      <h5 style={{ margin: 0, color: 'var(--accent-purple)', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '1px', fontWeight: 'bold' }}>History & Legal</h5>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.85rem' }}>
+                        <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>WORK HISTORY</div><div style={{ maxHeight: '80px', overflowY: 'auto', fontSize: '0.8rem', opacity: 0.8 }}>{selectedProfile.work_history || 'NO DATA'}</div></div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                          <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>CSC ELIGIBILITY</div>{selectedProfile.csc_license || '---'}</div>
+                          <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>VALIDITY</div>{selectedProfile.csc_date || '---'}</div>
+                        </div>
+                        <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>LEGAL DISCLOSURES</div><div style={{ color: 'var(--accent-red)', fontSize: '0.75rem' }}>{selectedProfile.legal_34_40 || 'NO DISCLOSURES'}</div></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 201 Modular Repository Section */}
+                  <div className="glass-panel" style={{ padding: '24px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                      <h4 style={{ margin: 0, color: '#fff', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <ShieldCheck size={20} color="var(--accent-blue)" /> 201 Modular Repository
+                      </h4>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Verification Pipeline</div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
+                      {MODULAR_DOCS_LIST.map((doc, idx) => {
+                        const docData = selectedProfile.modular_docs?.[doc.key];
+                        const hasFile = !!docData?.url;
+                        const styles = getDocStatusStyle(docData?.status || 'Missing');
+
+                        return (
+                          <div key={idx} style={{
+                            padding: '16px', background: 'rgba(0,0,0,0.2)', borderRadius: '12px',
+                            border: `1px solid ${hasFile ? 'rgba(255,255,255,0.05)' : 'rgba(255,123,114,0.1)'}`,
+                            display: 'flex', flexDirection: 'column', gap: '12px'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: hasFile ? '#fff' : 'rgba(255,255,255,0.4)', lineHeight: 1.2 }}>{doc.label}</div>
+                                <div style={{ fontSize: '0.65rem', color: styles.color, fontWeight: 'bold', textTransform: 'uppercase', marginTop: '4px' }}>{docData?.status || 'Missing'}</div>
+                              </div>
+                              <div style={{ display: 'flex', gap: '6px' }}>
+                                {hasFile && (
+                                  <button onClick={() => setSelectedFileUrl(docData.url)} style={{ background: 'rgba(88, 166, 255, 0.1)', border: 'none', color: 'var(--accent-blue)', width: '28px', height: '28px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Eye size={14} /></button>
+                                )}
+                                <label style={{ background: 'var(--accent-blue)', color: '#fff', width: '28px', height: '28px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <Upload size={14} />
+                                  <input type="file" hidden onChange={(e) => handleDocUpload(doc.key, e.target.files[0])} />
+                                </label>
+                              </div>
+                            </div>
+
+                            {hasFile && (
+                              <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>
+                                <button onClick={() => handleDocVerify(doc.key, 'Approved')} style={{ flex: 1, background: 'rgba(63, 185, 80, 0.1)', border: 'none', color: 'var(--accent-green)', padding: '6px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer' }}>Approve</button>
+                                <button onClick={() => { const r = prompt("Reason for rejection?"); if (r) handleDocVerify(doc.key, 'Rejected', r); }} style={{ flex: 1, background: 'rgba(255, 123, 114, 0.1)', border: 'none', color: 'var(--accent-red)', padding: '6px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer' }}>Reject</button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -741,6 +917,41 @@ const StaffRoster = () => {
           </div>
         </div>
       )}
+
+      {/* Internal File Preview Modal (2nd Layer) */}
+      {selectedFileUrl && (
+        <div
+          onClick={() => setSelectedFileUrl(null)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(10px)', zIndex: 10000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px'
+          }}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel animate-fade-in"
+            style={{
+              width: '100%', maxWidth: '1100px', height: '90vh', display: 'flex', flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', overflow: 'hidden', padding: 0
+            }}>
+            <div style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', background: 'var(--bg-tertiary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <FileText size={20} color="var(--accent-blue)" />
+                <h3 style={{ margin: 0, fontSize: '1.1rem' }}>201 Document Preview</h3>
+              </div>
+              <button
+                onClick={() => setSelectedFileUrl(null)}
+                style={{ background: 'rgba(255, 255, 255, 0.1)', border: 'none', color: '#fff', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ flex: 1, backgroundColor: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <iframe src={selectedFileUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="Document Viewer" />
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
