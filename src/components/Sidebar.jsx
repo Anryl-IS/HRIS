@@ -12,6 +12,7 @@ const Sidebar = ({ onOpenConfig }) => {
     { icon: <ClipboardList size={20} />, label: "SF Operations (IR)", path: "/sf-ops" },
     { icon: <GraduationCap size={20} />, label: "L&D Tracker", path: "/ld-tracker" },
     { icon: <Users size={20} />, label: "Employee Directory", path: "/directory" },
+    { icon: <Users size={20} />, label: "Staff & Tellers", path: "/staff-roster" },
   ];
 
   return (

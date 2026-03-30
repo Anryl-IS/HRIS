@@ -570,6 +570,21 @@ const EmployeeDirectory = () => {
                      </div>
                   </div>
 
+                  {selectedProfile.file_201_url && (
+                    <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '16px', marginTop: '8px' }}>
+                      <h4 style={{ fontSize: '0.9rem', color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Upload size={16} color="var(--accent-blue)" /> Raw 201 File Dump (Uncategorized)
+                      </h4>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        {selectedProfile.file_201_url.split(',').map((url, idx) => (
+                          <button key={idx} onClick={() => setSelectedFileUrl(url)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <FileText size={14} /> Attachment {idx + 1}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               )}
             </div>
@@ -666,7 +681,7 @@ const EmployeeDirectory = () => {
           <thead>
             <tr style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
               <th style={{ padding: '16px' }}>Full Legal Name</th>
-              <th style={{ padding: '16px' }}>Corporate Tier Position</th>
+              <th style={{ padding: '16px' }}>Role & Department</th>
               <th style={{ padding: '16px' }}>Current Mapping</th>
               <th style={{ padding: '16px' }}>Network Contacts</th>
               <th style={{ padding: '16px' }}>Clearance File</th>
@@ -721,8 +736,8 @@ const EmployeeDirectory = () => {
                   </td>
 
                   <td style={{ padding: '16px' }}>
-                     <div>{emp.position || 'Tier Unassigned'}</div>
-                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{emp.department}</div>
+                     <div style={{ fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px', fontSize: '0.9rem' }}>{emp.position || 'Tier Unassigned'}</div>
+                     <span style={{ fontSize: '0.7rem', color: 'var(--accent-blue)', background: 'rgba(88, 166, 255, 0.1)', border: '1px solid rgba(88, 166, 255, 0.2)', padding: '2px 8px', borderRadius: '12px', display: 'inline-block', whiteSpace: 'nowrap' }}>{emp.department || 'No Department'}</span>
                   </td>
                   
                   <td style={{ padding: '16px' }}>

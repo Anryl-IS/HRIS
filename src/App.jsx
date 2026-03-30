@@ -12,6 +12,7 @@ import ERCaseManagement from './components/ERCaseManagement';
 import SFOperations from './components/SFOperations';
 import LDTracker from './components/LDTracker';
 import EmployeeDirectory from './components/EmployeeDirectory';
+import StaffRoster from './components/StaffRoster';
 
 import logo from './assets/logo.png';
 
@@ -26,7 +27,7 @@ function App() {
     // Initial theme setup on bootstrap
     const savedTheme = localStorage.getItem('hris-theme');
     if (savedTheme === 'light') { document.body.classList.add('light-theme'); }
-    
+
     // Check current session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       setSession(session);
@@ -55,6 +56,7 @@ function App() {
       case '/sf-ops': return { title: 'Salesforce (IR) Tracking', sub: 'SOP Breaches & Branch Operations' };
       case '/ld-tracker': return { title: 'L&D Tracker', sub: 'Performance Assessments & Training Cadences' };
       case '/directory': return { title: 'Employee Directory', sub: 'Corporate Workforce Table' };
+      case '/staff-roster': return { title: 'Staff & Tellers', sub: 'Departmental & Company Divisions' };
       default: return { title: 'SGC Hris System', sub: '' };
     }
   };
@@ -63,7 +65,7 @@ function App() {
 
   if (initializing) {
     return (
-      <div style={{ 
+      <div style={{
         height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: 'var(--bg-primary)', color: 'var(--text-secondary)'
       }}>
@@ -94,11 +96,11 @@ function App() {
               <span style={{ marginRight: '8px', display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'currentColor', boxShadow: '0 0 8px currentColor' }}></span>
               {sbStatus}
             </div>
-            <div style={{ 
-               width: '40px', height: '40px', borderRadius: '50%', 
-               background: 'rgba(255,255,255,0.05)', display: 'flex', 
-               alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-               border: '1.5px solid var(--glass-border)', boxShadow: '0 0 20px rgba(0,0,0,0.4)'
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '50%',
+              background: 'rgba(255,255,255,0.05)', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+              border: '1.5px solid var(--glass-border)', boxShadow: '0 0 20px rgba(0,0,0,0.4)'
             }}>
               <img src={logo} alt="Brand" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
@@ -113,6 +115,7 @@ function App() {
             <Route path="/sf-ops" element={<SFOperations />} />
             <Route path="/ld-tracker" element={<LDTracker />} />
             <Route path="/directory" element={<EmployeeDirectory />} />
+            <Route path="/staff-roster" element={<StaffRoster />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

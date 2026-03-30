@@ -107,18 +107,18 @@ const Login = () => {
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ textAlign: 'left' }}>
-            <label style={{ 
-              display: 'block', 
-              fontSize: '0.85rem', 
-              color: 'var(--text-secondary)', 
+            <label style={{
+              display: 'block',
+              fontSize: '0.85rem',
+              color: 'var(--text-secondary)',
               marginBottom: '8px',
               paddingLeft: '4px'
             }}>Email Address</label>
             <div style={{ position: 'relative' }}>
-              <Mail size={18} style={{ 
-                position: 'absolute', 
-                left: '16px', 
-                top: '50%', 
+              <Mail size={18} style={{
+                position: 'absolute',
+                left: '16px',
+                top: '50%',
                 transform: 'translateY(-50%)',
                 color: 'var(--text-secondary)'
               }} />
@@ -146,18 +146,18 @@ const Login = () => {
           </div>
 
           <div style={{ textAlign: 'left' }}>
-            <label style={{ 
-              display: 'block', 
-              fontSize: '0.85rem', 
-              color: 'var(--text-secondary)', 
+            <label style={{
+              display: 'block',
+              fontSize: '0.85rem',
+              color: 'var(--text-secondary)',
               marginBottom: '8px',
               paddingLeft: '4px'
             }}>Password</label>
             <div style={{ position: 'relative' }}>
-              <Lock size={18} style={{ 
-                position: 'absolute', 
-                left: '16px', 
-                top: '50%', 
+              <Lock size={18} style={{
+                position: 'absolute',
+                left: '16px',
+                top: '50%',
                 transform: 'translateY(-50%)',
                 color: 'var(--text-secondary)'
               }} />

@@ -22,6 +22,7 @@ const OnboardingVault = () => {
   // Massive Data Model corresponding to PDS / 7-Pillars
   const [formData, setFormData] = useState({
     name_english: '', dob: '', pob: '', sex: '', civil_status: '',
+    department: 'IT', position: '', employment_status: 'Applicant / Pre-Hire Stage',
     height: '', weight: '', blood_type: '',
     gsis: '', pagibig: '', philhealth: '', sss: '', tin: '', citizenship: '',
     residence_address: '', residence_postal: '', present_address: '', present_postal: '',
@@ -35,6 +36,7 @@ const OnboardingVault = () => {
 
   // Multiple File Upload State
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [photoFile, setPhotoFile] = useState(null);
 
   const fetchData = async () => {
     const { data } = await supabase.from('employees').select('*').order('created_at', { ascending: false });
@@ -78,6 +80,17 @@ const OnboardingVault = () => {
     setLoading(true);
 
     try {
+      let photo_url = null;
+      if (photoFile) {
+        const pExt = photoFile.name.split('.').pop();
+        const pName = `avatar_${Date.now()}.${pExt}`;
+        const { data, error } = await supabase.storage.from('201_files').upload(pName, photoFile);
+        if (!error && data) {
+           const { data: pData } = supabase.storage.from('201_files').getPublicUrl(data.path);
+           if (pData) photo_url = pData.publicUrl;
+        }
+      }
+
       let fileUrls = [];
       if (selectedFiles.length > 0) {
         for (const file of selectedFiles) {
@@ -110,6 +123,10 @@ const OnboardingVault = () => {
 
       await supabase.from('employees').insert([{
         name_english: formData.name_english,
+        department: formData.department,
+        position: formData.position,
+        employment_status: formData.employment_status,
+        photo_url: photo_url,
         dob: formData.dob || null,
         sex: formData.sex,
         blood_type: formData.blood_type,
@@ -127,11 +144,13 @@ const OnboardingVault = () => {
         sss: formData.sss,
         philhealth: formData.philhealth,
         pagibig: formData.pagibig,
+        file_201_url: combinedFileUrls,
         modular_docs: modularDocs
       }]);
 
       setShowModal(false);
       setSelectedFiles([]); 
+      setPhotoFile(null);
       setActiveTab(1);      
       fetchData();         
     } catch (err) {
@@ -175,7 +194,7 @@ const OnboardingVault = () => {
                   { id: 1, icon: <Users size={16} />, title: '1. Personal Info' },
                   { id: 2, icon: <MapPin size={16} />, title: '2. Contact & Family' },
                   { id: 3, icon: <Book size={16} />, title: '3. Education & CSC' },
-                  { id: 4, icon: <Briefcase size={16} />, title: '4. Work & Service' },
+                  { id: 4, icon: <Briefcase size={16} />, title: '4. Work & Placement' },
                   { id: 5, icon: <FileText size={16} />, title: '5. L&D Interventions' },
                   { id: 6, icon: <Shield size={16} />, title: '6. Legal Disclosures' },
                   { id: 7, icon: <Upload size={16} />, title: '7. Document Uploads' }
@@ -196,7 +215,25 @@ const OnboardingVault = () => {
                   {activeTab === 1 && (
                     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                       <h4 style={{ color: 'var(--accent-blue)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>Personal Information (The Baseline)</h4>
-                      <VaultInput label="Full Name (Last, First, MI)" field="name_english" req formData={formData} setFormData={setFormData} />
+                      
+                      <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
+                        <div style={{ 
+                          width: '100px', height: '100px', borderRadius: '50%', background: 'var(--bg-tertiary)', 
+                          border: '2px dashed var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          position: 'relative', overflow: 'hidden', cursor: 'pointer', flexShrink: 0
+                        }}>
+                          {photoFile ? (
+                            <img src={URL.createObjectURL(photoFile)} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <UploadCloud size={28} color="var(--text-secondary)" />
+                          )}
+                          <input type="file" accept="image/*" onChange={e => setPhotoFile(e.target.files[0])} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                          <VaultInput label="Full Name (Last, First, MI)" field="name_english" req formData={formData} setFormData={setFormData} />
+                        </div>
+                      </div>
+
                       <div style={{ display: 'flex', gap: '16px' }}>
                         <VaultInput label="Date of Birth" type="date" field="dob" formData={formData} setFormData={setFormData} />
                         <VaultInput label="Place of Birth" field="pob" formData={formData} setFormData={setFormData} />
@@ -277,7 +314,36 @@ const OnboardingVault = () => {
 
                   {activeTab === 4 && (
                     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                      <h4 style={{ color: 'var(--accent-red)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>Work Experience (History)</h4>
+                      <h4 style={{ color: 'var(--accent-purple)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>Corporate Role & Placement</h4>
+                      
+                      <div style={{ display: 'flex', gap: '16px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '50%' }}>
+                          <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Department Placement</label>
+                          <select value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} style={{ padding: '10px', borderRadius: '6px', background: 'var(--bg-primary)', border: '1px solid var(--glass-border)', color: '#fff', outline: 'none' }}>
+                            <option>CFO</option>
+                            <option>ACCOUNTING</option>
+                            <option>IT</option>
+                            <option>HR</option>
+                            <option>ADMIN</option>
+                            <option>GLOWING FORTUNE (LDN, LDS)</option>
+                            <option>ROYAL GAMING OPC</option>
+                            <option>IMPERIAL GAMING OPC</option>
+                          </select>
+                        </div>
+                        <VaultInput label="Job Position" field="position" width="50%" formData={formData} setFormData={setFormData} />
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Current Status Tracking</label>
+                        <select value={formData.employment_status} onChange={e => setFormData({...formData, employment_status: e.target.value})} style={{ padding: '10px', borderRadius: '6px', background: 'var(--bg-primary)', border: '1px solid var(--glass-border)', color: '#fff', outline: 'none' }}>
+                          <option>Applicant / Pre-Hire Stage</option>
+                          <option>Probationary Status</option>
+                          <option>Project-Based / Contractual</option>
+                          <option>Regular / Permanent Status</option>
+                        </select>
+                      </div>
+
+                      <h4 style={{ color: 'var(--accent-red)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px', marginTop: '16px' }}>Work Experience (History)</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Chronological Record (Inclusive dates, position, department, salary grade, temp/permanent)</label>
                         <textarea value={formData.work_history} onChange={e => setFormData({ ...formData, work_history: e.target.value })} rows={6} placeholder="Format: YYYY-YYYY | Job Title | Agency | Salary" style={{ padding: '10px', borderRadius: '6px', background: 'var(--bg-primary)', border: '1px solid var(--glass-border)', color: '#fff', outline: 'none' }}></textarea>
