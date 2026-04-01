@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { Mail, Lock, LogIn, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
+import logo from '../assets/logo.png';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -45,7 +46,7 @@ const Login = () => {
         left: '10%',
         width: '300px',
         height: '300px',
-        background: 'rgba(88, 166, 255, 0.1)',
+        background: 'rgba(184, 227, 233, 0.1)',
         filter: 'blur(100px)',
         borderRadius: '50%',
         zIndex: -1
@@ -56,7 +57,7 @@ const Login = () => {
         right: '10%',
         width: '350px',
         height: '350px',
-        background: 'rgba(188, 140, 255, 0.1)',
+        background: 'rgba(79, 124, 130, 0.1)',
         filter: 'blur(100px)',
         borderRadius: '50%',
         zIndex: -1
@@ -70,17 +71,19 @@ const Login = () => {
       }}>
         <div style={{ marginBottom: '32px' }}>
           <div style={{
-            width: '64px',
-            height: '64px',
+            width: '80px',
+            height: '80px',
             borderRadius: '16px',
-            background: 'var(--accent-gradient)',
+            background: 'rgba(255,255,255,0.03)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 16px',
-            boxShadow: '0 8px 16px rgba(88, 166, 255, 0.2)'
+            boxShadow: '0 8px 16px rgba(0,0,0,0.3)',
+            border: '1px solid var(--glass-border)',
+            overflow: 'hidden'
           }}>
-            <ShieldCheck size={32} color="#fff" />
+            <img src={logo} alt="SGC Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
           <h1 className="text-gradient" style={{ fontSize: '2rem', marginBottom: '8px' }}>SGC Hris</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>HR Management & Operations Gateway</p>
