@@ -786,7 +786,7 @@ const StaffRoster = () => {
 
                     {/* Demographics & Personal */}
                     <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(255,255,255,0.02)' }}>
-                      <h5 style={{ margin: 0, color: 'var(--accent-blue)', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '1px', fontWeight: 'bold' }}>Demographic Analysis</h5>
+                      <h5 style={{ margin: 0, color: 'var(--accent-blue)', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '1px', fontWeight: 'bold' }}>Basic Information</h5>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.85rem' }}>
                         <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>DATE OF BIRTH</div>{selectedProfile.dob || 'N/A'}</div>
                         <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>PLACE OF BIRTH</div>{selectedProfile.pob || 'N/A'}</div>
@@ -818,7 +818,7 @@ const StaffRoster = () => {
 
                     {/* Government Identifier Trace */}
                     <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(255,255,255,0.02)' }}>
-                      <h5 style={{ margin: 0, color: 'var(--accent-red)', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '1px', fontWeight: 'bold' }}>Goverment Trace</h5>
+                      <h5 style={{ margin: 0, color: 'var(--accent-red)', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '1px', fontWeight: 'bold' }}>Statutory Benefits</h5>
                       <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '12px', fontSize: '0.85rem' }}>
                         <div style={{ color: 'var(--text-secondary)' }}>SSS NUMBER</div><code style={{ color: 'var(--accent-blue)' }}>{selectedProfile.sss || 'MISSING'}</code>
                         <div style={{ color: 'var(--text-secondary)' }}>PHILHEALTH</div><code style={{ color: 'var(--accent-blue)' }}>{selectedProfile.philhealth || 'MISSING'}</code>
@@ -830,7 +830,7 @@ const StaffRoster = () => {
 
                     {/* Family & Social Matrix */}
                     <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(255,255,255,0.02)' }}>
-                      <h5 style={{ margin: 0, color: 'var(--accent-purple)', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '1px', fontWeight: 'bold' }}>Family Matrix</h5>
+                      <h5 style={{ margin: 0, color: 'var(--accent-purple)', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '1px', fontWeight: 'bold' }}>Family</h5>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem' }}>
                         <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>SPOUSE / PARTNER</div>{selectedProfile.spouse_name || 'NONE RECORDED'}</div>
                         <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>PARENTS ORIGIN</div>{selectedProfile.parents_names || 'N/A'}</div>
@@ -840,7 +840,7 @@ const StaffRoster = () => {
 
                     {/* Education & Skill Matrix */}
                     <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(255,255,255,0.02)' }}>
-                      <h5 style={{ margin: 0, color: 'var(--text-primary)', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '1px', fontWeight: 'bold' }}>Education Hub</h5>
+                      <h5 style={{ margin: 0, color: 'var(--text-primary)', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '1px', fontWeight: 'bold' }}>Education</h5>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem' }}>
                         <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>INSTITUTION</div>{selectedProfile.school_name || 'N/A'}</div>
                         <div><div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>ATTAINMENT</div>{selectedProfile.educational || 'N/A'} - {selectedProfile.highest_level || ''}</div>
