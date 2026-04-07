@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { supabase } from '../supabaseClient';
 import {
   Users, Building2, Briefcase, Mail, Phone, ChevronDown, ChevronRight,
@@ -18,6 +18,12 @@ const MODULAR_DOCS_LIST = [
   { key: 'diploma', label: 'Diploma' },
   { key: 'work_history', label: 'Work History / Employment Certificates' }
 ];
+
+const isTeller = (emp) => {
+  const pos = (emp.position || '').toLowerCase();
+  const dept = (emp.department || '').toLowerCase();
+  return pos.includes('teller') || dept.includes('teller') || dept.includes('gaming');
+};
 
 // --- Sub-Components ---
 
@@ -87,16 +93,16 @@ const RosterControls = ({ viewMode, setViewMode, searchQuery, setSearchQuery, on
   </div>
 );
 
-const EmployeeRow = ({ employee, openProfile }) => (
+const EmployeeRow = memo(({ employee, openProfile }) => (
   <div
-    className="employee-row-hover"
-    onClick={() => openProfile(employee)}
+    className={employee.is_from_tellers_table ? "" : "employee-row-hover"}
+    onClick={() => !employee.is_from_tellers_table && openProfile(employee)}
     style={{
       display: 'grid', gridTemplateColumns: 'minmax(250px, 1.5fr) 2fr 150px',
       alignItems: 'center', padding: '14px 24px',
       borderBottom: '1px solid rgba(255,255,255,0.03)',
       transition: 'all 0.2s ease',
-      cursor: 'pointer'
+      cursor: employee.is_from_tellers_table ? 'default' : 'pointer'
     }}
   >
     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -106,7 +112,7 @@ const EmployeeRow = ({ employee, openProfile }) => (
         background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center'
       }}>
         {employee.photo_url ? (
-          <img src={employee.photo_url} alt={employee.name_english} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={employee.photo_url} alt={employee.name_english} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
         ) : (
           <UserRound size={20} color="var(--text-secondary)" />
         )}
@@ -144,7 +150,8 @@ const EmployeeRow = ({ employee, openProfile }) => (
       </div>
     </div>
   </div>
-);
+));
+EmployeeRow.displayName = 'EmployeeRow';
 
 const DepartmentAccordion = ({ name, staffCount, children, isOpen, onToggle }) => (
   <div className="glass-panel" style={{ marginBottom: '16px', padding: 0, overflow: 'hidden' }}>
@@ -179,12 +186,12 @@ const DepartmentAccordion = ({ name, staffCount, children, isOpen, onToggle }) =
     </div>
 
     <div style={{
-      maxHeight: isOpen ? '2000px' : '0',
+      maxHeight: isOpen ? '5000px' : '0',
       overflow: 'hidden',
       transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
       background: 'rgba(0,0,0,0.1)'
     }}>
-      {children}
+      {isOpen && children}
     </div>
   </div>
 );
@@ -193,6 +200,7 @@ const DepartmentAccordion = ({ name, staffCount, children, isOpen, onToggle }) =
 
 const StaffRoster = () => {
   const [employees, setEmployees] = useState([]);
+  const [tellers, setTellers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('OFFICE_STAFF');
   const [viewMode, setViewMode] = useState('list');
@@ -215,19 +223,40 @@ const StaffRoster = () => {
 
   const fetchEmployees = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('employees').select('*').order('name_english', { ascending: true });
-    if (!error && data) {
-      setEmployees(data);
+    
+    const [empRes, tellerRes] = await Promise.all([
+      supabase.from('employees').select('*').order('name_english', { ascending: true }),
+      supabase.from('tellers').select('*').order('full_name', { ascending: true })
+    ]);
+
+    if (!empRes.error && empRes.data) {
+      setEmployees(empRes.data);
+      
       const initialExpanded = {};
-      const depts = [...new Set(data.map(e => e.department || 'UNCATEGORIZED'))];
+      const depts = [...new Set(empRes.data.map(e => e.department || 'UNCATEGORIZED'))];
       depts.forEach((d, i) => { if (i === 0) initialExpanded[d] = true; });
       setExpandedDepts(initialExpanded);
     }
+
+    if (!tellerRes.error && tellerRes.data) {
+      // Map teller fields to employee schema for consistent UI rendering
+      const mappedTellers = tellerRes.data.map(t => ({
+        ...t,
+        name_english: t.full_name,
+        position: t.outlet || 'Teller',
+        department: t.area || 'Distribution',
+        mobile: t.contact_number,
+        is_from_tellers_table: true
+      }));
+      setTellers(mappedTellers);
+    }
+    
     setLoading(false);
   };
 
   // --- Modal Logic ---
   const openProfile = (emp) => {
+    if (emp.is_from_tellers_table) return; // Disable modal for tellers
     setSelectedProfile(emp);
     setEditForm(emp);
     setIsEditingProfile(false);
@@ -314,26 +343,27 @@ const StaffRoster = () => {
     setExpandedDepts(prev => ({ ...prev, [dept]: !prev[dept] }));
   };
 
-  const isTeller = (emp) => {
-    const pos = (emp.position || '').toLowerCase();
-    const dept = (emp.department || '').toLowerCase();
-    return pos.includes('teller') || dept.includes('teller') || dept.includes('gaming');
-  };
+  const filtered = useMemo(() => {
+    const source = activeTab === 'TELLERS' ? tellers : employees.filter(e => !isTeller(e));
+    const query = searchQuery?.toLowerCase() || '';
+    
+    if (!query) return source;
+    
+    return source.filter(emp => 
+      emp.name_english?.toLowerCase().includes(query) ||
+      emp.position?.toLowerCase().includes(query) ||
+      emp.department?.toLowerCase().includes(query)
+    );
+  }, [activeTab, tellers, employees, searchQuery]);
 
-  const filtered = employees.filter(emp => {
-    const matchesTab = activeTab === 'TELLERS' ? isTeller(emp) : !isTeller(emp);
-    const matchesSearch = emp.name_english?.toLowerCase().includes(searchQuery?.toLowerCase() || '') ||
-      emp.position?.toLowerCase().includes(searchQuery?.toLowerCase() || '') ||
-      emp.department?.toLowerCase().includes(searchQuery?.toLowerCase() || '');
-    return matchesTab && matchesSearch;
-  });
-
-  const grouped = filtered.reduce((acc, emp) => {
-    const dept = emp.department || 'UNCATEGORIZED';
-    if (!acc[dept]) acc[dept] = [];
-    acc[dept].push(emp);
-    return acc;
-  }, {});
+  const grouped = useMemo(() => {
+    return filtered.reduce((acc, emp) => {
+      const dept = emp.department || 'UNCATEGORIZED';
+      if (!acc[dept]) acc[dept] = [];
+      acc[dept].push(emp);
+      return acc;
+    }, {});
+  }, [filtered]);
 
   return (
     <div className="animate-fade-in" style={{ padding: '0 0 40px 0' }}>
@@ -423,8 +453,13 @@ const StaffRoster = () => {
                   <div
                     key={emp.id}
                     className="glass-panel"
-                    onClick={() => openProfile(emp)}
-                    style={{ padding: '20px', position: 'relative', cursor: 'pointer' }}
+                    onClick={() => !emp.is_from_tellers_table && openProfile(emp)}
+                    style={{ 
+                      padding: '20px', 
+                      position: 'relative', 
+                      cursor: emp.is_from_tellers_table ? 'default' : 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
                   >
                     <div style={{ display: 'flex', gap: '16px' }}>
                       <div style={{ width: '50px', height: '50px', borderRadius: '12px', background: 'var(--bg-tertiary)', overflow: 'hidden' }}>
