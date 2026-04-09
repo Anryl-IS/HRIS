@@ -223,7 +223,7 @@ const StaffRoster = () => {
 
   const fetchEmployees = async () => {
     setLoading(true);
-    
+
     const [empRes, tellerRes] = await Promise.all([
       supabase.from('employees').select('*').order('name_english', { ascending: true }),
       supabase.from('tellers').select('*').order('full_name', { ascending: true })
@@ -231,7 +231,7 @@ const StaffRoster = () => {
 
     if (!empRes.error && empRes.data) {
       setEmployees(empRes.data);
-      
+
       const initialExpanded = {};
       const depts = [...new Set(empRes.data.map(e => e.department || 'UNCATEGORIZED'))];
       depts.forEach((d, i) => { if (i === 0) initialExpanded[d] = true; });
@@ -250,7 +250,7 @@ const StaffRoster = () => {
       }));
       setTellers(mappedTellers);
     }
-    
+
     setLoading(false);
   };
 
@@ -346,10 +346,10 @@ const StaffRoster = () => {
   const filtered = useMemo(() => {
     const source = activeTab === 'TELLERS' ? tellers : employees.filter(e => !isTeller(e));
     const query = searchQuery?.toLowerCase() || '';
-    
+
     if (!query) return source;
-    
-    return source.filter(emp => 
+
+    return source.filter(emp =>
       emp.name_english?.toLowerCase().includes(query) ||
       emp.position?.toLowerCase().includes(query) ||
       emp.department?.toLowerCase().includes(query)
@@ -436,8 +436,8 @@ const StaffRoster = () => {
                   fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-secondary)',
                   textTransform: 'uppercase', letterSpacing: '1px'
                 }}>
-                  <span>Workforce Member</span>
-                  <span>Professional Details</span>
+                  <span>Teller</span>
+                  <span>Kiosk Name and Contact Number</span>
                   <span style={{ textAlign: 'right' }}>Status</span>
                 </div>
                 {grouped[dept].map(emp => (
@@ -454,9 +454,9 @@ const StaffRoster = () => {
                     key={emp.id}
                     className="glass-panel"
                     onClick={() => !emp.is_from_tellers_table && openProfile(emp)}
-                    style={{ 
-                      padding: '20px', 
-                      position: 'relative', 
+                    style={{
+                      padding: '20px',
+                      position: 'relative',
                       cursor: emp.is_from_tellers_table ? 'default' : 'pointer',
                       transition: 'all 0.2s ease'
                     }}
