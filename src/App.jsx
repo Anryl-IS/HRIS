@@ -12,6 +12,7 @@ import SFOperations from './components/SFOperations';
 import LDTracker from './components/LDTracker';
 import EmployeeDirectory from './components/EmployeeDirectory';
 import StaffRoster from './components/StaffRoster';
+import AdvisoryGenerator from './components/AdvisoryGenerator';
 
 import logo from './assets/logo.png';
 
@@ -55,6 +56,7 @@ function App() {
       case '/ld-tracker': return { title: 'L&D & Special Projects', sub: 'Performance Assessments & Project Tasking Matrix' };
       case '/directory': return { title: 'Employee Directory', sub: 'Corporate Workforce Table' };
       case '/staff-roster': return { title: 'Staff & Tellers', sub: 'Departmental & Company Divisions' };
+      case '/advisory-generator': return { title: 'Advisory Generator', sub: 'Create & Export System Maintenance Notices' };
       default: return { title: 'SGC Hris System', sub: '' };
     }
   };
@@ -100,6 +102,7 @@ function App() {
             <Route path="/ld-tracker" element={<LDTracker />} />
             <Route path="/directory" element={<EmployeeDirectory />} />
             <Route path="/staff-roster" element={<StaffRoster />} />
+            <Route path="/advisory-generator" element={<AdvisoryGenerator />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Users, UserPlus, ClipboardList, ShieldAlert, GraduationCap, Settings, LogOut } from 'lucide-react';
+import { Users, UserPlus, ClipboardList, ShieldAlert, GraduationCap, Settings, LogOut, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import logo from '../assets/logo.png';
 
@@ -12,6 +12,7 @@ const Sidebar = ({ onOpenConfig, sbStatus }) => {
     { icon: <GraduationCap size={20} />, label: "L&D & Special Projects", path: "/ld-tracker" },
     { icon: <Users size={20} />, label: "Employee Directory", path: "/directory" },
     { icon: <Users size={20} />, label: "Staff & Tellers", path: "/staff-roster" },
+    { icon: <ImageIcon size={20} />, label: "Advisory Gen", path: "/advisory-generator" },
   ];
 
   return (
