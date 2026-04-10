@@ -11,7 +11,8 @@ import {
   AlignRight,
   Maximize,
   Minus,
-  Plus
+  Plus,
+  Wand2
 } from 'lucide-react';
 
 const AdvisoryGenerator = () => {
@@ -140,6 +141,14 @@ const AdvisoryGenerator = () => {
     setAspectRatio('16/9');
   };
 
+  const randomizeBackground = () => {
+    const styles = ['solid', 'gradient', 'mesh'];
+    setBgStyle(styles[Math.floor(Math.random() * styles.length)]);
+    setBgColor('#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'));
+    setBgColor2('#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'));
+    setShowPattern(Math.random() > 0.5);
+  };
+
   return (
     <div className="animate-fade-in" style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '24px', height: 'calc(100vh - 250px)' }}>
       {/* Controls Panel */}
@@ -216,7 +225,15 @@ const AdvisoryGenerator = () => {
         {/* Controls: Colors & Sizes */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '12px', borderTop: '1px solid var(--glass-border)' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Background Style</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Background Style</span>
+              <button
+                onClick={randomizeBackground}
+                style={{ padding: '4px 10px', borderRadius: '6px', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <Wand2 size={12} /> Randomize
+              </button>
+            </div>
             <div style={{ display: 'flex', background: 'var(--bg-tertiary)', borderRadius: '8px', padding: '4px' }}>
               <button onClick={() => setBgStyle('solid')} style={{ flex: 1, padding: '6px', borderRadius: '6px', background: bgStyle === 'solid' ? 'var(--accent-teal-dark)' : 'transparent', color: '#fff', fontSize: '0.7rem' }}>Solid</button>
               <button onClick={() => setBgStyle('gradient')} style={{ flex: 1, padding: '6px', borderRadius: '6px', background: bgStyle === 'gradient' ? 'var(--accent-teal-dark)' : 'transparent', color: '#fff', fontSize: '0.7rem' }}>Gradient</button>
