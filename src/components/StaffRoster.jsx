@@ -153,6 +153,133 @@ const EmployeeRow = memo(({ employee, openProfile }) => (
 ));
 EmployeeRow.displayName = 'EmployeeRow';
 
+const TellerArea = memo(({ tableName, areaLabel, viewMode, searchQuery, nameFields }) => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize] = useState(30);
+  const [totalCount, setTotalCount] = useState(0);
+
+  useEffect(() => {
+    const fetchArea = async () => {
+      setLoading(true);
+      const from = currentPage * pageSize;
+      const to = from + pageSize - 1;
+
+      const { data: res, error, count } = await supabase
+        .from(tableName)
+        .select('*', { count: 'exact' })
+        .range(from, to);
+      
+      if (!error && res) {
+        setTotalCount(count || 0);
+        const mapped = res.map(t => ({
+          ...t,
+          name_english: nameFields.reduce((acc, field) => acc || t[field], null) || 'Unassigned Name',
+          position: t.outlet || `Teller (${areaLabel})`,
+          department: areaLabel,
+          mobile: t.contact_number || t.mobile,
+          is_from_tellers_table: true
+        }));
+        setData(mapped);
+      }
+      setLoading(false);
+    };
+    fetchArea();
+  }, [tableName, areaLabel, nameFields, currentPage, pageSize]);
+
+  // Reset to page 0 if table changes
+  useEffect(() => { setCurrentPage(0); }, [tableName]);
+
+  const filtered = useMemo(() => {
+    const query = searchQuery?.toLowerCase() || '';
+    if (!query) return data;
+    return data.filter(emp =>
+      emp.name_english?.toLowerCase().includes(query) ||
+      emp.position?.toLowerCase().includes(query)
+    );
+  }, [data, searchQuery]);
+
+  if (loading) return (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
+      <div className="spinner-glow" style={{ width: '30px', height: '30px', border: '3px solid rgba(88, 166, 255, 0.1)', borderTopColor: 'var(--accent-blue)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+    </div>
+  );
+
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  return (
+    <div className="animate-fade-in">
+      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+        <div>Showing {currentPage * pageSize + 1} - {Math.min((currentPage + 1) * pageSize, totalCount)} of {totalCount} entries in {areaLabel}</div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+           <button 
+             disabled={currentPage === 0} 
+             onClick={() => setCurrentPage(p => p - 1)}
+             className="glass-button" 
+             style={{ padding: '6px 14px', borderRadius: '8px', opacity: currentPage === 0 ? 0.3 : 1 }}
+           >
+             Previous
+           </button>
+           <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '0 15px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+             Page {currentPage + 1} of {totalPages}
+           </div>
+           <button 
+             disabled={currentPage >= totalPages - 1} 
+             onClick={() => setCurrentPage(p => p + 1)}
+             className="glass-button" 
+             style={{ padding: '6px 14px', borderRadius: '8px', opacity: currentPage >= totalPages - 1 ? 0.3 : 1 }}
+           >
+             Next
+           </button>
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+          <Users size={48} style={{ opacity: 0.2, marginBottom: '16px' }} />
+          <div>No personnel records found in the {areaLabel} matrix for this page.</div>
+        </div>
+      ) : (
+        viewMode === 'list' ? (
+          <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'minmax(250px, 1.5fr) 2fr 150px',
+              padding: '12px 24px', background: 'rgba(255,255,255,0.05)',
+              fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-secondary)',
+              textTransform: 'uppercase', letterSpacing: '1px'
+            }}>
+              <span>Teller Name</span>
+              <span>Location / Assignment & Contact</span>
+              <span style={{ textAlign: 'right' }}>Status Matrix</span>
+            </div>
+            {filtered.map(emp => (
+              <EmployeeRow key={emp.id} employee={emp} />
+            ))}
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+            {filtered.map(emp => (
+              <div key={emp.id} className="glass-panel" style={{ padding: '20px' }}>
+                <div style={{ display: 'flex', gap: '16px' }}>
+                  <div style={{ width: '50px', height: '50px', borderRadius: '12px', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                     <UserRound size={24} color="var(--text-secondary)" />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ margin: '0 0 4px 0' }}>{emp.name_english}</h4>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--accent-blue)' }}>{emp.position}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+    </div>
+  );
+});
+TellerArea.displayName = 'TellerArea';
+
 const DepartmentAccordion = ({ name, staffCount, children, isOpen, onToggle }) => (
   <div className="glass-panel" style={{ marginBottom: '16px', padding: 0, overflow: 'hidden' }}>
     <div
@@ -203,6 +330,7 @@ const StaffRoster = () => {
   const [tellers, setTellers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('OFFICE_STAFF');
+  const [activeTellerArea, setActiveTellerArea] = useState('GFO LDN');
   const [viewMode, setViewMode] = useState('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedDepts, setExpandedDepts] = useState({});
@@ -224,31 +352,14 @@ const StaffRoster = () => {
   const fetchEmployees = async () => {
     setLoading(true);
 
-    const [empRes, tellerRes] = await Promise.all([
-      supabase.from('employees').select('*').order('name_english', { ascending: true }),
-      supabase.from('tellers').select('*').order('full_name', { ascending: true })
-    ]);
+    const { data, error } = await supabase.from('employees').select('*').order('name_english', { ascending: true });
 
-    if (!empRes.error && empRes.data) {
-      setEmployees(empRes.data);
-
+    if (!error && data) {
+      setEmployees(data);
       const initialExpanded = {};
-      const depts = [...new Set(empRes.data.map(e => e.department || 'UNCATEGORIZED'))];
+      const depts = [...new Set(data.map(e => e.department || 'UNCATEGORIZED'))];
       depts.forEach((d, i) => { if (i === 0) initialExpanded[d] = true; });
       setExpandedDepts(initialExpanded);
-    }
-
-    if (!tellerRes.error && tellerRes.data) {
-      // Map teller fields to employee schema for consistent UI rendering
-      const mappedTellers = tellerRes.data.map(t => ({
-        ...t,
-        name_english: t.full_name,
-        position: t.outlet || 'Teller',
-        department: t.area || 'Distribution',
-        mobile: t.contact_number,
-        is_from_tellers_table: true
-      }));
-      setTellers(mappedTellers);
     }
 
     setLoading(false);
@@ -357,13 +468,22 @@ const StaffRoster = () => {
   }, [activeTab, tellers, employees, searchQuery]);
 
   const grouped = useMemo(() => {
-    return filtered.reduce((acc, emp) => {
+    const res = filtered.reduce((acc, emp) => {
       const dept = emp.department || 'UNCATEGORIZED';
       if (!acc[dept]) acc[dept] = [];
       acc[dept].push(emp);
       return acc;
     }, {});
-  }, [filtered]);
+
+    // Ensure requested groups exist in Tellers tab
+    if (activeTab === 'TELLERS') {
+      if (!res['GFO LDN']) res['GFO LDN'] = [];
+      if (!res['5A']) res['5A'] = [];
+      if (!res['IMPERIAL']) res['IMPERIAL'] = [];
+    }
+
+    return res;
+  }, [filtered, activeTab]);
 
   return (
     <div className="animate-fade-in" style={{ padding: '0 0 40px 0' }}>
@@ -414,10 +534,61 @@ const StaffRoster = () => {
         </button>
       </div>
 
+      {activeTab === 'TELLERS' && (
+        <div style={{
+          display: 'flex', gap: '20px', marginBottom: '32px',
+          borderBottom: '1px solid var(--glass-border)', paddingBottom: '16px'
+        }}>
+          {['GFO LDN', '5A', 'IMPERIAL'].map(area => (
+            <button
+              key={area}
+              onClick={() => setActiveTellerArea(area)}
+              style={{
+                background: 'transparent', border: 'none', color: activeTellerArea === area ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                padding: '8px 4px', fontSize: '0.9rem', fontWeight: 'bold', cursor: 'pointer',
+                position: 'relative', transition: 'all 0.2s'
+              }}
+            >
+              {area}
+              {activeTellerArea === area && (
+                <div style={{ position: 'absolute', bottom: '-17px', left: 0, right: 0, height: '2px', background: 'var(--accent-blue)', boxShadow: '0 0 10px var(--accent-blue)' }} />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', padding: '100px 0' }}>
           <div className="spinner-glow" style={{ width: '40px', height: '40px', border: '3px solid rgba(88, 166, 255, 0.1)', borderTopColor: 'var(--accent-blue)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
           <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', letterSpacing: '1px' }}>SYNCHRONIZING PERSONNEL MATRIX...</span>
+        </div>
+      ) : activeTab === 'TELLERS' ? (
+        <div className="animate-fade-in">
+          {activeTellerArea === 'GFO LDN' && (
+             <TellerArea 
+               tableName="tellersldn" 
+               areaLabel="GFO LDN" 
+               viewMode={viewMode} 
+               searchQuery={searchQuery}
+               nameFields={['fullname', 'fullName', 'full_name', 'name']}
+             />
+          )}
+          {activeTellerArea === '5A' && (
+             <TellerArea 
+               tableName="tellers" 
+               areaLabel="5A" 
+               viewMode={viewMode} 
+               searchQuery={searchQuery}
+               nameFields={['fullname', 'fullName', 'full_name', 'name']}
+             />
+          )}
+          {activeTellerArea === 'IMPERIAL' && (
+             <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                <Users size={48} style={{ opacity: 0.2, marginBottom: '16px' }} />
+                <div>Imperial Area Command center is currently empty.</div>
+             </div>
+          )}
         </div>
       ) : (
         Object.keys(grouped).sort().map(dept => (
