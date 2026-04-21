@@ -4,7 +4,7 @@ import {
   Users, Building2, Briefcase, Mail, Phone, ChevronDown, ChevronRight,
   Search, Filter, Plus, LayoutGrid, List, MoreVertical, ShieldCheck, X,
   UserRound, UploadCloud, Eye, Edit2, Trash2, Save, Activity, CheckCircle, FileText,
-  Upload, ShieldAlert, MapPin
+  Upload, ShieldAlert, MapPin, AlertTriangle, History
 } from 'lucide-react';
 import QuickStageModal from './QuickStageModal';
 
@@ -95,14 +95,14 @@ const RosterControls = ({ viewMode, setViewMode, searchQuery, setSearchQuery, on
 
 const EmployeeRow = memo(({ employee, openProfile }) => (
   <div
-    className={employee.is_from_tellers_table ? "" : "employee-row-hover"}
-    onClick={() => !employee.is_from_tellers_table && openProfile(employee)}
+    className="employee-row-hover"
+    onClick={() => openProfile && openProfile(employee)}
     style={{
       display: 'grid', gridTemplateColumns: 'minmax(250px, 1.5fr) 2fr 150px',
       alignItems: 'center', padding: '14px 24px',
       borderBottom: '1px solid rgba(255,255,255,0.03)',
       transition: 'all 0.2s ease',
-      cursor: employee.is_from_tellers_table ? 'default' : 'pointer'
+      cursor: 'pointer'
     }}
   >
     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -153,7 +153,7 @@ const EmployeeRow = memo(({ employee, openProfile }) => (
 ));
 EmployeeRow.displayName = 'EmployeeRow';
 
-const TellerArea = memo(({ tableName, areaLabel, viewMode, searchQuery, nameFields }) => {
+const TellerArea = memo(({ tableName, areaLabel, viewMode, searchQuery, nameFields, openProfile }) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
@@ -254,13 +254,13 @@ const TellerArea = memo(({ tableName, areaLabel, viewMode, searchQuery, nameFiel
               <span style={{ textAlign: 'right' }}>Status Matrix</span>
             </div>
             {filtered.map(emp => (
-              <EmployeeRow key={emp.id} employee={emp} />
+              <EmployeeRow key={emp.id} employee={emp} openProfile={openProfile} />
             ))}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
             {filtered.map(emp => (
-              <div key={emp.id} className="glass-panel" style={{ padding: '20px' }}>
+              <div key={emp.id} className="glass-panel employee-row-hover" onClick={() => openProfile(emp)} style={{ padding: '20px', cursor: 'pointer' }}>
                 <div style={{ display: 'flex', gap: '16px' }}>
                   <div style={{ width: '50px', height: '50px', borderRadius: '12px', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                      <UserRound size={24} color="var(--text-secondary)" />
@@ -344,6 +344,8 @@ const StaffRoster = () => {
   const [showChecklistDropdown, setShowChecklistDropdown] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [uploadingDoc, setUploadingDoc] = useState(null);
+  const [incidentReports, setIncidentReports] = useState([]);
+  const [uploadingIncident, setUploadingIncident] = useState(false);
 
   useEffect(() => {
     fetchEmployees();
@@ -366,13 +368,19 @@ const StaffRoster = () => {
   };
 
   // --- Modal Logic ---
+  const fetchIncidentReports = async (name) => {
+    const { data } = await supabase.from('ir_cases').select('*').eq('agent_name', name).order('date_posted', { ascending: false });
+    if (data) setIncidentReports(data);
+  };
+
   const openProfile = (emp) => {
-    if (emp.is_from_tellers_table) return; // Disable modal for tellers
     setSelectedProfile(emp);
     setEditForm(emp);
     setIsEditingProfile(false);
     setIsEditingStatus(false);
     setShowChecklistDropdown(false);
+    setIncidentReports([]);
+    fetchIncidentReports(emp.name_english);
   };
 
   const getStatusStyle = (status) => {
@@ -448,6 +456,46 @@ const StaffRoster = () => {
     await supabase.from('employees').update({ modular_docs: updatedDocs }).eq('id', selectedProfile.id);
     setSelectedProfile({ ...selectedProfile, modular_docs: updatedDocs });
     fetchEmployees();
+  };
+
+  const handleIncidentUpload = async (file) => {
+    if (!file) return;
+    setUploadingIncident(true);
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${selectedProfile.id}_IR_${Date.now()}.${fileExt}`;
+    const filePath = `incidents/${fileName}`;
+
+    try {
+      const { error: uploadError } = await supabase.storage.from('incident_reports_sales').upload(filePath, file);
+
+      if (!uploadError) {
+        const { data: { publicUrl } } = supabase.storage.from('incident_reports_sales').getPublicUrl(filePath);
+        
+        const { error: insertError } = await supabase.from('ir_cases').insert([{
+          agent_name: selectedProfile.name_english,
+          area: selectedProfile.department || 'Unassigned',
+          status: 'OPEN',
+          sop_breakdown: 'Under Investigation',
+          file_name: file.name,
+          file_url: publicUrl,
+          date_posted: new Date().toISOString()
+        }]);
+
+        if (!insertError) {
+          fetchIncidentReports(selectedProfile.name_english);
+          alert('Incident Report uploaded successfully!');
+        } else {
+          alert('Error saving incident report record: ' + insertError.message);
+        }
+      } else {
+        alert('Error uploading file: ' + uploadError.message);
+      }
+    } catch (err) {
+      alert('An unexpected error occurred during upload.');
+      console.error(err);
+    } finally {
+      setUploadingIncident(false);
+    }
   };
 
   const toggleDept = (dept) => {
@@ -572,6 +620,7 @@ const StaffRoster = () => {
                viewMode={viewMode} 
                searchQuery={searchQuery}
                nameFields={['fullname', 'fullName', 'full_name', 'name']}
+               openProfile={openProfile}
              />
           )}
           {activeTellerArea === '5A' && (
@@ -580,7 +629,8 @@ const StaffRoster = () => {
                areaLabel="5A" 
                viewMode={viewMode} 
                searchQuery={searchQuery}
-               nameFields={['fullname', 'fullName', 'full_name', 'name']}
+               nameFields={['fullname', 'fullname', 'full_name', 'name']}
+               openProfile={openProfile}
              />
           )}
           {activeTellerArea === 'IMPERIAL' && (
@@ -623,12 +673,12 @@ const StaffRoster = () => {
                 {grouped[dept].map(emp => (
                   <div
                     key={emp.id}
-                    className="glass-panel"
-                    onClick={() => !emp.is_from_tellers_table && openProfile(emp)}
+                    className="glass-panel employee-row-hover"
+                    onClick={() => openProfile(emp)}
                     style={{
                       padding: '20px',
                       position: 'relative',
-                      cursor: emp.is_from_tellers_table ? 'default' : 'pointer',
+                      cursor: 'pointer',
                       transition: 'all 0.2s ease'
                     }}
                   >
@@ -1116,6 +1166,55 @@ const StaffRoster = () => {
                         );
                       })}
                     </div>
+                  </div>
+
+                  {/* Incident Reports Section */}
+                  <div className="glass-panel" style={{ padding: '24px', background: 'rgba(255,123,114,0.02)', border: '1px solid rgba(255,123,114,0.1)', marginTop: '24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                      <h4 style={{ margin: 0, color: 'var(--accent-red)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <ShieldAlert size={20} /> Incident Reports & Compliance
+                      </h4>
+                      <label style={{ background: 'var(--accent-red)', color: '#fff', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Upload size={16} /> {uploadingIncident ? 'Uploading...' : 'Upload New Report'}
+                        <input type="file" hidden disabled={uploadingIncident} onChange={(e) => handleIncidentUpload(e.target.files[0])} />
+                      </label>
+                    </div>
+
+                    {incidentReports.length === 0 ? (
+                      <div style={{ padding: '40px', textAlign: 'center', background: 'rgba(0,0,0,0.1)', borderRadius: '12px', color: 'var(--text-secondary)' }}>
+                        <History size={32} style={{ opacity: 0.2, marginBottom: '12px' }} />
+                        <div>No incident reports found for this personnel.</div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {incidentReports.map((report, idx) => (
+                          <div key={idx} className="glass-panel" style={{ padding: '16px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                              <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(255,123,114,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <FileText size={20} color="var(--accent-red)" />
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>{report.sop_breakdown || 'Security Incident'}</div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{new Date(report.date_posted || report.created_at).toLocaleDateString()} &bull; {report.area}</div>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <span style={{ 
+                                padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 'bold',
+                                background: report.status === 'Resolved' ? 'rgba(63, 185, 80, 0.1)' : 'rgba(255, 123, 114, 0.1)',
+                                color: report.status === 'Resolved' ? 'var(--accent-green)' : 'var(--accent-red)',
+                                border: `1px solid ${report.status === 'Resolved' ? 'rgba(63, 185, 80, 0.2)' : 'rgba(255, 123, 114, 0.2)'}`
+                              }}>
+                                {report.status}
+                              </span>
+                              <button onClick={() => setSelectedFileUrl(report.file_url)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Eye size={14} /> View
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
